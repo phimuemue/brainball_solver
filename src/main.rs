@@ -50,6 +50,32 @@ struct SBall {
     n_cells : u64,
 }
 
+static N_MASK_4 : u64 = 0b11111_11111_11111_11111;
+static N_MASK_3 : u64 = 0b11111_11111_11111;
+
+static AI_SHIFT_INDEX_PRI_4 : [usize; 6] = [5*0,5*1,5*2,5*6,5*7,5*8];
+static AI_SHIFT_INDEX_PRI_3 : [usize; 6] = [5*7,5*8,5*9,5*0,5*1,5*2];
+static AN_INVERTED_FLIP_MASK_PRI : [u64; 6] = [ // == (N_MASK_4 << AI_SHIFT_INDEX_PRI_4[i]) | (N_MASK_3 << AI_SHIFT_INDEX_PRI_3[i])
+    !((0b11111_11111_11111_11111 << (5*0)) | (0b11111_11111_11111 << (5*7))),
+    !((0b11111_11111_11111_11111 << (5*1)) | (0b11111_11111_11111 << (5*8))),
+    !((0b11111_11111_11111_11111 << (5*2)) | (0b11111_11111_11111 << (5*9))),
+    !((0b11111_11111_11111_11111 << (5*6)) | (0b11111_11111_11111 << (5*0))),
+    !((0b11111_11111_11111_11111 << (5*7)) | (0b11111_11111_11111 << (5*1))),
+    !((0b11111_11111_11111_11111 << (5*8)) | (0b11111_11111_11111 << (5*2))),
+];
+
+static AI_SHIFT_INDEX_SEC_LO : [usize; 7] = [5*0,5*1,5*2,5*6,5*7,5*8,5*9];
+static AI_SHIFT_INDEX_SEC_HI : [usize; 7] = [5*7,5*8,5*9,5*0,5*1,5*2,5*3];
+static AN_INVERTED_FLIP_MASK_SEC : [u64; 7] = [ // == (N_MASK_3 << AI_SHIFT_INDEX_SEC_LO[i]) | (N_MASK_3 << AI_SHIFT_INDEX_SEC_HI[i]);
+    !((0b11111_11111_11111 << (5*0)) | (0b11111_11111_11111 << (5*7))),
+    !((0b11111_11111_11111 << (5*1)) | (0b11111_11111_11111 << (5*8))),
+    !((0b11111_11111_11111 << (5*2)) | (0b11111_11111_11111 << (5*9))),
+    !((0b11111_11111_11111 << (5*6)) | (0b11111_11111_11111 << (5*0))),
+    !((0b11111_11111_11111 << (5*7)) | (0b11111_11111_11111 << (5*1))),
+    !((0b11111_11111_11111 << (5*8)) | (0b11111_11111_11111 << (5*2))),
+    !((0b11111_11111_11111 << (5*9)) | (0b11111_11111_11111 << (5*3))),
+];
+
 impl SBall {
     fn new(_an: [usize; 13], _ab: [bool; 13]) -> SBall {
         SBall {
@@ -94,29 +120,20 @@ impl SBall {
 
     fn primary_flip(&mut self, n_flip: usize) {
         debug_assert!(n_flip<6);
-        let ai_4 = [5*0,5*1,5*2,5*6,5*7,5*8];
-        let n_mask_4 : u64 = 0b11111_11111_11111_11111;
-        let n_4_to_be_flipped = (self.n_cells & (n_mask_4 << ai_4[n_flip])) >> ai_4[n_flip];
-        let ai_3 = [5*7,5*8,5*9,5*0,5*1,5*2];
-        let n_mask_3 : u64 = 0b11111_11111_11111;
-        let n_3_to_be_flipped = (self.n_cells & (n_mask_3 << ai_3[n_flip])) >> ai_3[n_flip];
-        let n_flip_mask = (n_mask_4 << ai_4[n_flip]) | (n_mask_3 << ai_3[n_flip]); // TODO precompute and store in array
-        self.n_cells = (self.n_cells & !n_flip_mask) // erase old numbers
-            | (AN_FLIPPING_TABLE_4[n_4_to_be_flipped as usize] << ai_4[n_flip]) // install 4 flipped numbers
-            | (AN_FLIPPING_TABLE_3[n_3_to_be_flipped as usize] << ai_3[n_flip]); // install 3 flipped numbers
+        let n_4_to_be_flipped = (self.n_cells & (N_MASK_4 << AI_SHIFT_INDEX_PRI_4[n_flip])) >> AI_SHIFT_INDEX_PRI_4[n_flip];
+        let n_3_to_be_flipped = (self.n_cells & (N_MASK_3 << AI_SHIFT_INDEX_PRI_3[n_flip])) >> AI_SHIFT_INDEX_PRI_3[n_flip];
+        self.n_cells = (self.n_cells & AN_INVERTED_FLIP_MASK_PRI[n_flip]) // erase old numbers
+            | (AN_FLIPPING_TABLE_4[n_4_to_be_flipped as usize] << AI_SHIFT_INDEX_PRI_4[n_flip]) // install 4 flipped numbers
+            | (AN_FLIPPING_TABLE_3[n_3_to_be_flipped as usize] << AI_SHIFT_INDEX_PRI_3[n_flip]); // install 3 flipped numbers
     }
 
     fn secondary_flip(&mut self, n_flip: usize) {
         debug_assert!(n_flip<7);
-        let n_mask_3 = 0b11111_11111_11111;
-        let ai_lo = [5*0,5*1,5*2,5*6,5*7,5*8,5*9];
-        let n_lo_to_be_flipped = (self.n_cells & (n_mask_3 << ai_lo[n_flip])) >> ai_lo[n_flip];
-        let ai_hi = [5*7,5*8,5*9,5*0,5*1,5*2,5*3];
-        let n_hi_to_be_flipped = (self.n_cells & (n_mask_3 << ai_hi[n_flip])) >> ai_hi[n_flip];
-        let n_flip_mask = (n_mask_3 << ai_lo[n_flip]) | (n_mask_3 << ai_hi[n_flip]); // TODO precompute and store in array
-        self.n_cells = (self.n_cells & !n_flip_mask) // erase old numbers
-            | (AN_FLIPPING_TABLE_3[n_lo_to_be_flipped as usize] << ai_hi[n_flip])
-            | (AN_FLIPPING_TABLE_3[n_hi_to_be_flipped as usize] << ai_lo[n_flip]);
+        let n_lo_to_be_flipped = (self.n_cells & (N_MASK_3 << AI_SHIFT_INDEX_SEC_LO[n_flip])) >> AI_SHIFT_INDEX_SEC_LO[n_flip];
+        let n_hi_to_be_flipped = (self.n_cells & (N_MASK_3 << AI_SHIFT_INDEX_SEC_HI[n_flip])) >> AI_SHIFT_INDEX_SEC_HI[n_flip];
+        self.n_cells = (self.n_cells & AN_INVERTED_FLIP_MASK_SEC[n_flip]) // erase old numbers
+            | (AN_FLIPPING_TABLE_3[n_lo_to_be_flipped as usize] << AI_SHIFT_INDEX_SEC_HI[n_flip])
+            | (AN_FLIPPING_TABLE_3[n_hi_to_be_flipped as usize] << AI_SHIFT_INDEX_SEC_LO[n_flip]);
     }
 
     fn get_num(&self, i: usize) -> usize {

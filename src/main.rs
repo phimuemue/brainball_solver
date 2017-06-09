@@ -162,8 +162,7 @@ impl SBall {
                 return Some(vecnSolution);
             }
             vecn.pop().unwrap();
-            self.primary_flip(i); // convert back
-            debug_assert_eq!(self.n_cells, ball_backup.n_cells);
+            self.n_cells = ball_backup.n_cells; // convert back
         }
         for i in 0..7 {
             let ball_backup = self.clone();
@@ -173,8 +172,7 @@ impl SBall {
                 return Some(vecnSolution);
             }
             vecn.pop().unwrap();
-            self.secondary_flip(i); // convert back
-            debug_assert_eq!(self.n_cells, ball_backup.n_cells);
+            self.n_cells = ball_backup.n_cells; // convert back
         }
         mapballn_depth.insert(self.clone(), n_depth);
         return None;

@@ -1,6 +1,8 @@
 extern crate fnv;
+extern crate rand;
 
 use fnv::FnvHashMap as HashMap;
+use rand::Rng;
 
 static N_BITS_PER_CELL : usize = 5;
 static N_CELL_MASK : u64 = 0b11111u64;
@@ -143,7 +145,7 @@ impl SBall {
     }
 
     fn find_solution(&mut self, n_depth: usize, mapballn_depth: &mut HashMap<SBall, usize>, vecn: &mut Vec<usize>) -> Option<Vec<usize>> {
-        if 11<n_depth {
+        if 12<n_depth {
             return None;
         }
         if let Some(n_depth_ball_already_searched) = mapballn_depth.get(&self) {
@@ -248,19 +250,16 @@ fn main() {
         [1,2,3,4,5,6,7,8,9,10,11,12,13],
         [true, true, true, true, true, true, true, true, true, true, true, true, true],
     );
-    print_ball(&ball);
-    ball.primary_flip(0);
-    print_ball(&ball);
-    ball.secondary_flip(4);
-    print_ball(&ball);
-    ball.primary_flip(4);
-    print_ball(&ball);
-    ball.primary_flip(4);
-    print_ball(&ball);
-    ball.secondary_flip(4);
-    print_ball(&ball);
-    ball.primary_flip(4);
-    print_ball(&ball);
+    // generate random configuration
+    let mut rng = rand::thread_rng();
+    for _i in 0..100 {
+        if rng.gen() { // random bool
+            ball.primary_flip(rng.gen_range(0, 6));
+        } else {
+            ball.secondary_flip(rng.gen_range(0, 7));
+        }
+        print_ball(&ball);
+    }
     if let Some(vecn) = ball.clone().find_solution(0, &mut HashMap::default(), &mut Vec::new()) {
         println!("Found solution:");
         let mut ball_playback = ball.clone();

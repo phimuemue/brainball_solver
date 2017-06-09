@@ -6,3 +6,4 @@ authors = ["philipp <philipp>"]
 [dependencies]
 derive-new = "0"
 fnv = "1"
+rand = "0"

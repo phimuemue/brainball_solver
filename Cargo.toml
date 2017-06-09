@@ -1,0 +1,8 @@
+[package]
+name = "brainball_solver"
+version = "0.1.0"
+authors = ["philipp <philipp>"]
+
+[dependencies]
+derive-new = "0"
+fnv = "1"

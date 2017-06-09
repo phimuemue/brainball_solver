@@ -118,6 +118,7 @@ impl SBall {
     //          ^^ ^^ ^^          ^^ ^^ ^^     11
     //             ^^ ^^ ^^          ^^ ^^ ^^  12
 
+    #[inline(always)]
     fn primary_flip(&mut self, n_flip: usize) {
         debug_assert!(n_flip<6);
         let n_4_to_be_flipped = (self.n_cells & (N_MASK_4 << AI_SHIFT_INDEX_PRI_4[n_flip])) >> AI_SHIFT_INDEX_PRI_4[n_flip];
@@ -127,6 +128,7 @@ impl SBall {
             | (AN_FLIPPING_TABLE_3[n_3_to_be_flipped as usize] << AI_SHIFT_INDEX_PRI_3[n_flip]); // install 3 flipped numbers
     }
 
+    #[inline(always)]
     fn secondary_flip(&mut self, n_flip: usize) {
         debug_assert!(n_flip<7);
         let n_lo_to_be_flipped = (self.n_cells & (N_MASK_3 << AI_SHIFT_INDEX_SEC_LO[n_flip])) >> AI_SHIFT_INDEX_SEC_LO[n_flip];

@@ -163,7 +163,7 @@ impl SBall {
             }
             vecn.pop().unwrap();
             self.primary_flip(i); // convert back
-            assert_eq!(self.n_cells, ball_backup.n_cells);
+            debug_assert_eq!(self.n_cells, ball_backup.n_cells);
         }
         for i in 0..7 {
             let ball_backup = self.clone();
@@ -174,7 +174,7 @@ impl SBall {
             }
             vecn.pop().unwrap();
             self.secondary_flip(i); // convert back
-            assert_eq!(self.n_cells, ball_backup.n_cells);
+            debug_assert_eq!(self.n_cells, ball_backup.n_cells);
         }
         mapballn_depth.insert(self.clone(), n_depth);
         return None;

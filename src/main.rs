@@ -145,7 +145,7 @@ impl SBall {
     }
 
     fn find_solution(&mut self, n_depth: usize, mapballn_depth: &mut HashMap<SBall, usize>, vecn: &mut Vec<usize>) -> Option<Vec<usize>> {
-        if 12<n_depth {
+        if 10<n_depth {
             return None;
         }
         if let Some(n_depth_ball_already_searched) = mapballn_depth.get(&self) {
@@ -153,23 +153,29 @@ impl SBall {
                 return None;
             }
         }
+        //if self.n_cells & 0b11110_11110_11110_11110_11110_11110_11110_11110_11110_11110_11110_11110 == 0b11000_10110_10100_10010_10000_01110_01100_01010_01000_00110_00100_00010 {
+        //    return Some(vecn.clone());
+        //}
+        //if self.n_cells & 0b00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001 == 0 {
+        //    return Some(vecn.clone());
+        //}
         if self.n_cells == 0b11000_10110_10100_10010_10000_01110_01100_01010_01000_00110_00100_00010 {
             return Some(vecn.clone());
         }
-        for i in 0..6 {
+        for i in 0..7 {
             let ball_backup = self.clone();
-            self.primary_flip(i);
-            vecn.push(i);
+            self.secondary_flip(i);
+            vecn.push(6+i);
             if let Some(vecnSolution) = self.find_solution(n_depth+1, mapballn_depth, vecn) {
                 return Some(vecnSolution);
             }
             vecn.pop().unwrap();
             self.n_cells = ball_backup.n_cells; // convert back
         }
-        for i in 0..7 {
+        for i in 0..6 {
             let ball_backup = self.clone();
-            self.secondary_flip(i);
-            vecn.push(6+i);
+            self.primary_flip(i);
+            vecn.push(i);
             if let Some(vecnSolution) = self.find_solution(n_depth+1, mapballn_depth, vecn) {
                 return Some(vecnSolution);
             }
@@ -252,28 +258,26 @@ fn main() {
     );
     // generate random configuration
     let mut rng = rand::thread_rng();
-    for _i in 0..100 {
+    for _i in 0..rng.gen_range(1, 10) {
         if rng.gen() { // random bool
             ball.primary_flip(rng.gen_range(0, 6));
         } else {
             ball.secondary_flip(rng.gen_range(0, 7));
         }
-        print_ball(&ball);
     }
+    print_ball(&ball);
     if let Some(vecn) = ball.clone().find_solution(0, &mut HashMap::default(), &mut Vec::new()) {
-        println!("Found solution:");
         let mut ball_playback = ball.clone();
         for n in vecn {
-            print_ball(&ball_playback);
-            println!("{}", n);
+            print!("{:>width$} : ", n, width=2);
             if n<6 {
                 ball_playback.primary_flip(n);
             } else {
                 assert!(n<13);
                 ball_playback.secondary_flip(n-6);
             }
+            print_ball(&ball_playback);
         }
-        print_ball(&ball_playback);
     } else {
         println!("No solution found");
     }

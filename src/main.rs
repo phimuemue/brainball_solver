@@ -28,25 +28,6 @@ fn flip_table_entry(n_numbers: u64, n_count: usize) -> u64 {
 
 include!("flipping_tables.in");
 
-fn vec_shift_right<T>(vect: &mut Vec<T>, n_shift: usize) {
-    let n_len = vect.len();
-    assert!(0<n_len);
-    for _i in 0..n_shift {
-        let t = vect.pop().unwrap();
-        vect.insert(0, t);
-    }
-    assert_eq!(n_len, vect.len());
-}
-
-fn vec_shift_left<T>(vect: &mut Vec<T>, n_shift: usize) {
-    let n_len = vect.len();
-    for _i in 0..n_shift {
-        let t = vect.remove(0);
-        vect.push(t);
-    }
-    assert_eq!(n_len, vect.len());
-}
-
 #[derive(PartialEq, Eq, Clone, Hash)]
 struct SBall {
     n_cells : u64,

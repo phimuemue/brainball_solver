@@ -79,7 +79,7 @@ static AN_INVERTED_FLIP_MASK_SEC : [u64; 7] = [ // == (N_MASK_3 << AI_SHIFT_INDE
 ];
 
 impl SBall {
-    fn new(_an: [usize; 13], _ab: [bool; 13]) -> SBall {
+    fn new() -> SBall {
         SBall {
             n_cells : 0b11000_10110_10100_10010_10000_01110_01100_01010_01000_00110_00100_00010,
         }
@@ -98,6 +98,17 @@ impl SBall {
         //ball
     }
 
+    fn count_different_cells(&self, ball: &SBall) -> usize {
+        let n_cells_diff = self.n_cells ^ ball.n_cells;
+        (0..12).map(|i_cell| 
+            if 0==extract_cell(n_cells_diff, i_cell) {
+                0
+            } else {
+                1
+            }
+        )
+        .sum()
+    }
 
     //    ...................................
     // 00 01 02 03 04 05 06 07 08 09 10 11 12
@@ -145,13 +156,19 @@ impl SBall {
     }
 
     fn find_solution(&mut self, n_depth: usize, mapballn_depth: &mut HashMap<SBall, usize>, vecn: &mut Vec<usize>) -> Option<Vec<usize>> {
-        if 10<n_depth {
+        if 7<n_depth {
             return None;
         }
-        if let Some(n_depth_ball_already_searched) = mapballn_depth.get(&self) {
-            if n_depth_ball_already_searched <= &n_depth {
-                return None;
+        //if let Some(n_depth_ball_already_searched) = mapballn_depth.get(&self) {
+        //    if n_depth_ball_already_searched <= &n_depth {
+        //        return None;
+        //    }
+        //}
+        if self.count_different_cells(&SBall::new())==3 {
+            if self.n_cells & 0b00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001 == 0 {
+                return Some(vecn.clone());
             }
+            //return Some(vecn.clone());
         }
         //if self.n_cells & 0b11110_11110_11110_11110_11110_11110_11110_11110_11110_11110_11110_11110 == 0b11000_10110_10100_10010_10000_01110_01100_01010_01000_00110_00100_00010 {
         //    return Some(vecn.clone());
@@ -159,9 +176,12 @@ impl SBall {
         //if self.n_cells & 0b00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001 == 0 {
         //    return Some(vecn.clone());
         //}
-        if self.n_cells == 0b11000_10110_10100_10010_10000_01110_01100_01010_01000_00110_00100_00010 {
-            return Some(vecn.clone());
-        }
+        //if self.n_cells == 0b11000_10110_10100_10010_10000_01110_01100_01010_01000_00010_00100_00110 {
+        //    return Some(vecn.clone());
+        //}
+        //if self.n_cells == 0b11000_10110_10100_10010_10000_01110_01100_01010_01000_00110 _00100_00010 {
+        //    return Some(vecn.clone());
+        //}
         for i in 0..7 {
             let ball_backup = self.clone();
             self.secondary_flip(i);
@@ -182,7 +202,7 @@ impl SBall {
             vecn.pop().unwrap();
             self.n_cells = ball_backup.n_cells; // convert back
         }
-        mapballn_depth.insert(self.clone(), n_depth);
+        //mapballn_depth.insert(self.clone(), n_depth);
         return None;
     }
 }
@@ -252,19 +272,16 @@ fn main() {
     }
 
 
-    let mut ball = SBall::new(
-        [1,2,3,4,5,6,7,8,9,10,11,12,13],
-        [true, true, true, true, true, true, true, true, true, true, true, true, true],
-    );
+    let mut ball = SBall::new();
     // generate random configuration
     let mut rng = rand::thread_rng();
-    for _i in 0..rng.gen_range(1, 10) {
-        if rng.gen() { // random bool
-            ball.primary_flip(rng.gen_range(0, 6));
-        } else {
-            ball.secondary_flip(rng.gen_range(0, 7));
-        }
-    }
+    //for _i in 0..rng.gen_range(1, 10) {
+    //    if rng.gen() { // random bool
+    //        ball.primary_flip(rng.gen_range(0, 6));
+    //    } else {
+    //        ball.secondary_flip(rng.gen_range(0, 7));
+    //    }
+    //}
     print_ball(&ball);
     if let Some(vecn) = ball.clone().find_solution(0, &mut HashMap::default(), &mut Vec::new()) {
         let mut ball_playback = ball.clone();

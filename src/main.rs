@@ -79,16 +79,43 @@ impl SBall {
         //ball
     }
 
-    fn count_different_cells(&self, ball: &SBall) -> usize {
-        let n_cells_diff = self.n_cells ^ ball.n_cells;
-        (0..12).map(|i_cell| 
-            if 0==extract_cell(n_cells_diff, i_cell) {
-                0
-            } else {
-                1
-            }
-        )
-        .sum()
+    //fn count_different_cells(&self, ball: &SBall) -> usize {
+    //    let n_cells_diff = self.n_cells ^ ball.n_cells;
+    //    (0..12).map(|i_cell| 
+    //        if 0==extract_cell(n_cells_diff, i_cell) {
+    //            0
+    //        } else {
+    //            1
+    //        }
+    //    )
+    //    .sum()
+    //}
+
+    fn colors_correct(&self) -> bool {
+        0 == self.n_cells & 0b00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001
+    }
+
+    fn is_solved(&self) -> bool {
+        self.n_cells & 0b11110_11110_11110_11110_11110_11110_11110_11110_11110_11110_11110_11110 == 0b11000_10110_10100_10010_10000_01110_01100_01010_01000_00110_00100_00010
+    }
+
+    fn wrong_indices(&self) -> Option<Vec<usize>> { // None if colors differ
+        if !self.colors_correct() {
+            None
+        } else {
+            let n_cells_diff = self.n_cells ^ SBall::new().n_cells;
+            Some(
+                (0..12).filter_map(|i_cell| {
+                    let n_cell_diff = extract_cell(n_cells_diff, i_cell);
+                    if 0!=n_cell_diff {
+                        Some((((extract_cell(self.n_cells, i_cell)&0b11110)>>1)-1) as usize)
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+            )
+        }
     }
 
     //    ...................................
@@ -132,25 +159,53 @@ impl SBall {
             | (AN_FLIPPING_TABLE_3[n_hi_to_be_flipped as usize] << AI_SHIFT_INDEX_SEC_LO[n_flip]);
     }
 
-    fn get_num(&self, i: usize) -> usize {
-        ((self.n_cells & (0b11111u64 << (i*5))) >> (i*5)) as usize
+    #[inline(always)]
+    fn flip(&mut self, n_flip: usize) {
+        if n_flip<6 {
+            self.primary_flip(n_flip);
+        } else {
+            assert!(n_flip<13);
+            self.secondary_flip(n_flip-6);
+        }
     }
 
-    fn find_solution(&mut self, n_depth: usize, mapballn_depth: &mut HashMap<SBall, usize>, vecn: &mut Vec<usize>) -> Option<Vec<usize>> {
+    //fn get_num(&self, i: usize) -> usize {
+    //    ((self.n_cells & (0b11111u64 << (i*5))) >> (i*5)) as usize
+    //}
+
+    fn find_solution<FnPred, FnSuccess> (
+        &self,
+        n_depth: usize,
+        mapballn_depth: &mut HashMap<SBall, usize>,
+        vecn: &mut Vec<usize>,
+        fn_pred: &FnPred,
+        fn_success: &mut FnSuccess
+    )
+        where
+            FnPred: Fn(&SBall) -> bool,
+            FnSuccess: FnMut(&SBall, &Vec<usize>) -> bool, // result indicates whether we want to continue
+    {
         if 7<n_depth {
-            return None;
+            return;
+            //return None;
         }
-        //if let Some(n_depth_ball_already_searched) = mapballn_depth.get(&self) {
-        //    if n_depth_ball_already_searched <= &n_depth {
-        //        return None;
-        //    }
-        //}
-        if self.count_different_cells(&SBall::new())==3 {
-            if self.n_cells & 0b00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001 == 0 {
-                return Some(vecn.clone());
+        if fn_pred(self) {
+            if !fn_success(self, vecn) {
+                return;
             }
-            //return Some(vecn.clone());
         }
+        if let Some(n_depth_ball_already_searched) = mapballn_depth.get(&self) {
+            if n_depth_ball_already_searched <= &n_depth {
+                return /*None*/;
+            }
+        }
+        //if self.count_different_cells(&SBall::new())==3 {
+        //    if self.n_cells & 0b00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001 == 0 {
+        //        fn_success(vecn);
+        //        //return Some(vecn.clone());
+        //    }
+        //    //return Some(vecn.clone());
+        //}
         //if self.n_cells & 0b11110_11110_11110_11110_11110_11110_11110_11110_11110_11110_11110_11110 == 0b11000_10110_10100_10010_10000_01110_01100_01010_01000_00110_00100_00010 {
         //    return Some(vecn.clone());
         //}
@@ -164,27 +219,27 @@ impl SBall {
         //    return Some(vecn.clone());
         //}
         for i in 0..7 {
-            let ball_backup = self.clone();
-            self.secondary_flip(i);
+            let mut ball_next = self.clone();
+            ball_next.secondary_flip(i);
             vecn.push(6+i);
-            if let Some(vecnSolution) = self.find_solution(n_depth+1, mapballn_depth, vecn) {
-                return Some(vecnSolution);
-            }
+            ball_next.find_solution(n_depth+1, mapballn_depth, vecn, fn_pred, fn_success);
+            //if let Some(vecnSolution) = self.find_solution(n_depth+1, mapballn_depth, vecn) {
+            //    return Some(vecnSolution);
+            //}
             vecn.pop().unwrap();
-            self.n_cells = ball_backup.n_cells; // convert back
         }
         for i in 0..6 {
-            let ball_backup = self.clone();
-            self.primary_flip(i);
+            let mut ball_next = self.clone();
+            ball_next.primary_flip(i);
             vecn.push(i);
-            if let Some(vecnSolution) = self.find_solution(n_depth+1, mapballn_depth, vecn) {
-                return Some(vecnSolution);
-            }
+            ball_next.find_solution(n_depth+1, mapballn_depth, vecn, fn_pred, fn_success);
+            //if let Some(vecnSolution) = self.find_solution(n_depth+1, mapballn_depth, vecn) {
+            //    return Some(vecnSolution);
+            //}
             vecn.pop().unwrap();
-            self.n_cells = ball_backup.n_cells; // convert back
         }
-        //mapballn_depth.insert(self.clone(), n_depth);
-        return None;
+        mapballn_depth.insert(self.clone(), n_depth);
+        //return None;
     }
 }
 
@@ -253,30 +308,157 @@ fn main() {
     }
 
 
-    let mut ball = SBall::new();
-    // generate random configuration
-    let mut rng = rand::thread_rng();
-    //for _i in 0..rng.gen_range(1, 10) {
-    //    if rng.gen() { // random bool
-    //        ball.primary_flip(rng.gen_range(0, 6));
-    //    } else {
-    //        ball.secondary_flip(rng.gen_range(0, 7));
-    //    }
-    //}
+    let ball = {
+        let mut ball = SBall::new();
+        // generate random configuration
+        let mut rng = rand::thread_rng();
+        for _i in 0..rng.gen_range(1, 100000) {
+            ball.flip(rng.gen_range(0, 13));
+        }
+        ball
+    };
     print_ball(&ball);
-    if let Some(vecn) = ball.clone().find_solution(0, &mut HashMap::default(), &mut Vec::new()) {
+    let mut vecvecn_solve_colors = Vec::new();
+    println!("Trying to establish same colors...");
+    ball.find_solution(
+        0,
+        &mut HashMap::default(),
+        &mut Vec::new(),
+        &|ball| ball.colors_correct(),
+        &mut |_ball, vecn| {
+            vecvecn_solve_colors.push(vecn.clone());
+            false
+        },
+    );
+    if let Some(vecn_solve_colors) = vecvecn_solve_colors.first() {
+        println!("Same colors established");
         let mut ball_playback = ball.clone();
-        for n in vecn {
-            print!("{:>width$} : ", n, width=2);
-            if n<6 {
-                ball_playback.primary_flip(n);
-            } else {
-                assert!(n<13);
-                ball_playback.secondary_flip(n-6);
-            }
+        for n_flip in vecn_solve_colors.iter().cloned() {
+            print!("{:>width$} : ", n_flip, width=2);
+            ball_playback.flip(n_flip);
             print_ball(&ball_playback);
         }
+
+        println!("Constructed permutation tables");
+        let aan_permutation = [
+            [5, 1, 4, 0, 4, 5], // [1, 2, 0]
+            [2, 1, 5, 2, 5, 2], // [2, 3, 1]
+            [3, 4, 1, 4, 0, 3], // [3, 4, 2]
+            [4, 5, 2, 5, 1, 4], // [4, 5, 3]
+            [5, 9, 2, 9, 2, 5], // [5, 6, 4]
+            [3, 8, 11, 8, 12, 3], // [6, 7, 5]
+            [4, 3, 0, 4, 0, 4], // [7, 8, 6]
+            [5, 4, 1, 5, 1, 5], // [8, 9, 7]
+            [3, 0, 3, 0, 4, 3], // [9, 10, 8]
+            [4, 1, 4, 1, 5, 4], // [10, 11, 9]
+        ];
+        for x in aan_permutation.iter() {
+            println!("{:?}", x);
+        }
+        {
+            let mut ball_test = SBall::new();
+            for n_flip in aan_permutation[0].iter().rev() {
+                ball_test.flip(*n_flip);
+                print!("perm test: ");
+                print_ball(&ball_test);
+            }
+        }
+
+        while !ball_playback.is_solved() {
+            for i in 1..11 { // install numbers one after another
+                let i_desired_pos = (i - 1) as usize;
+                let mut n_actual_pos = (0..12)
+                    .find(|&i_cell| extract_cell(ball_playback.n_cells, i_cell)>>1 == i)
+                    .unwrap();
+                print!("{} is at {}, but should be at {}: ", i, n_actual_pos, i_desired_pos);
+                print_ball(&ball_playback);
+                assert!(i_desired_pos <= n_actual_pos);
+                while n_actual_pos!=i_desired_pos {
+                    if n_actual_pos==1 {
+                        while n_actual_pos!=i_desired_pos {
+                            for n_flip in aan_permutation[0].iter().rev() {
+                                ball_playback.flip(*n_flip);
+                                print!("After {}: ", n_flip);
+                                print_ball(&ball_playback);
+                            }
+                            n_actual_pos = (0..12)
+                                .find(|&i_cell| extract_cell(ball_playback.n_cells, i_cell)>>1 == i)
+                                .unwrap();
+                        }
+                    } else {
+                        for n_flip in aan_permutation[std::cmp::max(i_desired_pos, n_actual_pos-2)].iter().rev() {
+                            ball_playback.flip(*n_flip);
+                            print!("After {}: ", n_flip);
+                            print_ball(&ball_playback);
+                        }
+                        n_actual_pos = (0..12)
+                            .find(|&i_cell| extract_cell(ball_playback.n_cells, i_cell)>>1 == i)
+                            .unwrap();
+                    }
+                    print!("{} is at {}, but should be at {}: ", i, n_actual_pos, i_desired_pos);
+                    print_ball(&ball_playback);
+                }
+            }
+            if !ball_playback.is_solved() {
+                assert!(ball_playback.colors_correct());
+                let veci_wrong = ball_playback.wrong_indices().unwrap();
+                if veci_wrong.len() < 3 {
+                    assert!(!veci_wrong.is_empty());
+                    // we have to adjust parity
+                    println!("Correcting parity...");
+                    let mut vecn_parity = Vec::new();
+                    ball_playback.find_solution(
+                        0,
+                        &mut HashMap::default(),
+                        &mut Vec::new(),
+                        &|ball| ball.colors_correct(),
+                        &mut |_ball, vecn| {
+                            if vecn.len()%2==1 {
+                                vecn_parity = vecn.clone();
+                                false
+                            } else {
+                                true
+                            }
+                        },
+                    );
+                    println!("Parity correction found");
+                    for n_flip in vecn_parity.iter().cloned() {
+                        print!("{:>width$} : ", n_flip, width=2);
+                        ball_playback.flip(n_flip);
+                        print_ball(&ball_playback);
+                    }
+                }
+                assert!(ball_playback.colors_correct());
+            }
+        }
+        print_ball(&ball_playback);
+
+        //for vecn in vecvecn {
+        //    let mut ball_switch = SBall::new();
+        //    for n in vecn {
+        //        //print!("{:>width$}, ", n, width=2);
+        //        ball_switch.flip(n);
+        //    }
+        //    print!(" : ");
+
+        //    for n_cell_diff in ball_switch.wrong_indices().unwrap() {
+        //        print!("{:>width$}, ", n_cell_diff, width=2)
+        //    }
+        //    print!(" ");
+        //    print_ball(&ball_switch);
+
+        //}
+        //if let Some(vecn) = ball.clone().find_solution(0, &mut HashMap::default(), &mut Vec::new()) {
+        //    let mut ball_playback = ball.clone();
+        //    for n in vecn {
+        //        print!("{:>width$} : ", n, width=2);
+        //        ball_playback.flip(n);
+        //        print_ball(&ball_playback);
+        //    }
+        //} else {
+        //    println!("No solution found");
+        //}
     } else {
-        println!("No solution found");
+        println!("Could not establish uniform colors.")
     }
 }

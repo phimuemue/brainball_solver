@@ -423,8 +423,91 @@ fn main() {
     }
     print_ball(&ball_playback);
     let mut ball_test = ball.clone();
-    for n_flip in vecn_solution {
-        ball_test.flip(n_flip);
+    for n_flip in vecn_solution.iter() {
+        ball_test.flip(*n_flip);
     }
     assert!(ball_test.is_solved());
+
+    let mut n_old_length = vecn_solution.len();
+    let mut vecflip_solution_compressed = compress_solution(&vecn_solution);
+    while vecflip_solution_compressed.len() < n_old_length {
+        n_old_length = vecflip_solution_compressed.len();
+        vecflip_solution_compressed = compress_solution(&vecflip_solution_compressed);
+    }
+
+    println!("Solution:   {} moves", vecn_solution.len());
+    println!("Comperssed: {} moves", vecflip_solution_compressed.len());
+
+    let mut ball_test = ball.clone();
+    for flip in vecflip_solution_compressed {
+        print_ball(&ball_test);
+        ball_test.flip(flip);
+    }
+    print_ball(&ball_test);
+}
+
+fn compress_solution(vecn_solution: &Vec<usize>) -> Vec<usize> {
+    let mut mapballvecflip : HashMap<_, Vec<_>> = HashMap::default();
+    SBall::new().find_solution(
+        0,
+        &mut HashMap::default(),
+        &mut Vec::new(),
+        &|_ball| true, // consider all moves
+        &mut |ball, vecflip| {
+            if vecflip.len()<=6 {
+                mapballvecflip.insert(ball.clone(), vecflip.clone());
+            }
+            true // always continue
+        },
+    );
+    println!("Found {} entries", mapballvecflip.len());
+    let mut veccompress = Vec::new();
+    for i in 0..vecn_solution.len() {
+        veccompress.push((
+            i+1, // single element, initially no compression
+            vecn_solution.len() - i, // uncompressed length
+        ));
+    }
+    for i_lo in (0..(vecn_solution.len()-1)).rev() {
+        for i_hi in (i_lo+1)..vecn_solution.len() {
+            let ball_to_be_compressed = {
+                let mut ball = SBall::new();
+                for flip in vecn_solution[i_lo..i_hi].iter() {
+                    ball.flip(*flip);
+                }
+                ball
+            };
+            if let Some(vecflip_compress) = mapballvecflip.get(&ball_to_be_compressed) {
+                let n_compressed_len = vecflip_compress.len() + if i_hi==vecn_solution.len() {0} else {veccompress[i_hi].1};
+                if veccompress[i_lo].1 > n_compressed_len {
+                    veccompress[i_lo].0 = i_hi;
+                    veccompress[i_lo].1 = n_compressed_len;
+                }
+                //if vecflip_compress.len() < veccompress[i_lo].1 {
+                //    println!("[{}..{}] {:?} could be compressed to {:?}", i_lo, i_hi, vecn_solution[i_lo..i_hi].to_vec(), vecflip_compress);
+                //}
+            }
+        }
+    }
+    let mut vecflip_solution_compressed = Vec::new();
+    let mut i_compress = 0;
+    while i_compress<vecn_solution.len() {
+        if veccompress[i_compress].0==i_compress+1 {
+            vecflip_solution_compressed.push(vecn_solution[i_compress]);
+        } else {
+            let ball_to_be_compressed = {
+                let mut ball = SBall::new();
+                for flip in vecn_solution[i_compress..veccompress[i_compress].0].iter() {
+                    ball.flip(*flip);
+                }
+                ball
+            };
+            let vecflip_compress = mapballvecflip.get(&ball_to_be_compressed).unwrap();
+            for flip in vecflip_compress {
+                vecflip_solution_compressed.push(*flip);
+            }
+        }
+        i_compress = veccompress[i_compress].0;
+    }
+    vecflip_solution_compressed
 }

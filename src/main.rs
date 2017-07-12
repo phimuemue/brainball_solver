@@ -307,7 +307,6 @@ fn main() {
         return;
     }
 
-
     let ball = { // "input" ball - immutable so that we can always look back what it initially was
         let mut ball = SBall::new();
         // generate random configuration
@@ -333,9 +332,11 @@ fn main() {
     let vecn_solve_colors = vecvecn_solve_colors.first().expect("Could not establish correct colors");
     println!("Same colors established");
     let mut ball_playback = ball.clone();
+    let mut vecn_solution = Vec::new();
     for n_flip in vecn_solve_colors.iter().cloned() {
         print!("{:>width$} : ", n_flip, width=2);
         ball_playback.flip(n_flip);
+        vecn_solution.push(n_flip);
         print_ball(&ball_playback);
     }
     let aan_permutation = [
@@ -364,6 +365,7 @@ fn main() {
                     while n_actual_pos!=i_desired_pos {
                         for n_flip in aan_permutation[0].iter().rev() {
                             ball_playback.flip(*n_flip);
+                            vecn_solution.push(*n_flip);
                             print!("After {}: ", n_flip);
                             print_ball(&ball_playback);
                         }
@@ -374,6 +376,7 @@ fn main() {
                 } else {
                     for n_flip in aan_permutation[std::cmp::max(i_desired_pos, n_actual_pos-2)].iter().rev() {
                         ball_playback.flip(*n_flip);
+                        vecn_solution.push(*n_flip);
                         print!("After {}: ", n_flip);
                         print_ball(&ball_playback);
                     }
@@ -411,6 +414,7 @@ fn main() {
                 for n_flip in vecn_parity.iter().cloned() {
                     print!("{:>width$} : ", n_flip, width=2);
                     ball_playback.flip(n_flip);
+                    vecn_solution.push(n_flip);
                     print_ball(&ball_playback);
                 }
             }
@@ -418,4 +422,9 @@ fn main() {
         }
     }
     print_ball(&ball_playback);
+    let mut ball_test = ball.clone();
+    for n_flip in vecn_solution {
+        ball_test.flip(n_flip);
+    }
+    assert!(ball_test.is_solved());
 }

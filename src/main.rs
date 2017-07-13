@@ -3,7 +3,7 @@ extern crate rand;
 
 use fnv::FnvHashMap as HashMap;
 use fnv::FnvHashSet as HashSet;
-//use rand::Rng;
+use rand::Rng;
 
 static N_BITS_PER_CELL : usize = 5;
 static N_CELL_MASK : u64 = 0b11111u64;
@@ -161,13 +161,15 @@ impl SBall {
         mapballn_depth: &mut HashMap<SBall, usize>,
         vecn: &mut Vec<usize>,
         fn_pred: &FnPred,
-        fn_success: &mut FnSuccess
+        fn_success: &mut FnSuccess,
+        n_last_pri_flip: usize,
+        n_last_sec_flip: usize,
     )
         where
             FnPred: Fn(&SBall) -> bool,
             FnSuccess: FnMut(&SBall, &Vec<usize>) -> bool, // result indicates whether we want to continue
     {
-        if 7<n_depth {
+        if 6<n_depth {
             return;
             //return None;
         }
@@ -176,32 +178,36 @@ impl SBall {
                 return;
             }
         }
-        if let Some(n_depth_ball_already_searched) = mapballn_depth.get(&self) {
-            if n_depth_ball_already_searched <= &n_depth {
-                return /*None*/;
+        //if let Some(n_depth_ball_already_searched) = mapballn_depth.get(&self) {
+        //    if n_depth_ball_already_searched <= &n_depth {
+        //        return /*None*/;
+        //    }
+        //}
+        for i in 0..7 {
+            if n_last_sec_flip!=i {
+                let mut ball_next = self.clone();
+                ball_next.secondary_flip(i);
+                vecn.push(6+i);
+                ball_next.find_solution(n_depth+1, mapballn_depth, vecn, fn_pred, fn_success, 9999, i);
+                //if let Some(vecnSolution) = self.find_solution(n_depth+1, mapballn_depth, vecn) {
+                //    return Some(vecnSolution);
+                //}
+                vecn.pop().unwrap();
             }
         }
-        for i in 0..7 {
-            let mut ball_next = self.clone();
-            ball_next.secondary_flip(i);
-            vecn.push(6+i);
-            ball_next.find_solution(n_depth+1, mapballn_depth, vecn, fn_pred, fn_success);
-            //if let Some(vecnSolution) = self.find_solution(n_depth+1, mapballn_depth, vecn) {
-            //    return Some(vecnSolution);
-            //}
-            vecn.pop().unwrap();
-        }
         for i in 0..6 {
-            let mut ball_next = self.clone();
-            ball_next.primary_flip(i);
-            vecn.push(i);
-            ball_next.find_solution(n_depth+1, mapballn_depth, vecn, fn_pred, fn_success);
-            //if let Some(vecnSolution) = self.find_solution(n_depth+1, mapballn_depth, vecn) {
-            //    return Some(vecnSolution);
-            //}
-            vecn.pop().unwrap();
+            if n_last_pri_flip!=i {
+                let mut ball_next = self.clone();
+                ball_next.primary_flip(i);
+                vecn.push(i);
+                ball_next.find_solution(n_depth+1, mapballn_depth, vecn, fn_pred, fn_success, i, 9999);
+                //if let Some(vecnSolution) = self.find_solution(n_depth+1, mapballn_depth, vecn) {
+                //    return Some(vecnSolution);
+                //}
+                vecn.pop().unwrap();
+            }
         }
-        mapballn_depth.insert(self.clone(), n_depth);
+        //mapballn_depth.insert(self.clone(), n_depth);
         //return None;
     }
 }
@@ -272,14 +278,14 @@ fn main() {
 
     let ball = { // "input" ball - immutable so that we can always look back what it initially was
         let mut ball = SBall::new();
-        for n in 0..10000 {
-            ball.flip((2*n+6)%13);
-        }
-        // generate random configuration
-        //let mut rng = rand::thread_rng();
-        //for _i in 0..rng.gen_range(1, 100000) {
-        //    ball.flip(rng.gen_range(0, 13));
+        //for n in 0..10000 {
+        //    ball.flip((4*n+7)%13);
         //}
+        // generate random configuration
+        let mut rng = rand::thread_rng();
+        for _i in 0..rng.gen_range(1, 100000) {
+            ball.flip(rng.gen_range(0, 13));
+        }
         ball
     };
     print_ball(&ball);
@@ -300,6 +306,8 @@ fn main() {
             }
             ovecflip_solve_colors_even.is_some() || ovecflip_solve_colors_odd.is_some()
         },
+        9999,
+        9999,
     );
     assert!(ovecflip_solve_colors_even.is_some() && ovecflip_solve_colors_odd.is_some());
     println!("Same colors established");
@@ -420,6 +428,8 @@ fn compress_solution(vecn_solution: &Vec<usize>) -> Vec<usize> {
             }
             true // always continue
         },
+        9999,
+        9999,
     );
     println!("Found {} entries", mapballvecflip.len());
     let mut veccompress = Vec::new();

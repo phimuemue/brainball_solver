@@ -100,25 +100,6 @@ impl SBall {
         self.n_cells & 0b11110_11110_11110_11110_11110_11110_11110_11110_11110_11110_11110_11110 == 0b11000_10110_10100_10010_10000_01110_01100_01010_01000_00110_00100_00010
     }
 
-    fn wrong_indices(&self) -> Option<Vec<usize>> { // None if colors differ
-        if !self.colors_correct() {
-            None
-        } else {
-            let n_cells_diff = self.n_cells ^ SBall::new().n_cells;
-            Some(
-                (0..12).filter_map(|i_cell| {
-                    let n_cell_diff = extract_cell(n_cells_diff, i_cell);
-                    if 0!=n_cell_diff {
-                        Some((((extract_cell(self.n_cells, i_cell)&0b11110)>>1)-1) as usize)
-                    } else {
-                        None
-                    }
-                })
-                .collect()
-            )
-        }
-    }
-
     //    ...................................
     // 00 01 02 03 04 05 06 07 08 09 10 11 12
     // -1 00 01 02 03 04 05 06 07 08 09 10 11 (cell indices)
@@ -186,7 +167,7 @@ impl SBall {
             FnPred: Fn(&SBall) -> bool,
             FnSuccess: FnMut(&SBall, &Vec<usize>) -> bool, // result indicates whether we want to continue
     {
-        if 6<n_depth {
+        if 7<n_depth {
             return;
             //return None;
         }
@@ -299,23 +280,29 @@ fn main() {
         ball
     };
     print_ball(&ball);
-    let mut vecvecn_solve_colors = Vec::new();
     println!("Trying to establish same colors...");
+    let mut ovecflip_solve_colors_even = None;
+    let mut ovecflip_solve_colors_odd = None;
     ball.find_solution(
         0,
         &mut HashMap::default(),
         &mut Vec::new(),
         &|ball| ball.colors_correct(),
-        &mut |_ball, vecn| {
-            vecvecn_solve_colors.push(vecn.clone());
-            false
+        &mut |ball, vecn| {
+            assert!(ball.colors_correct());
+            if 0==vecn.len()%2 {
+                ovecflip_solve_colors_even = Some(vecn.clone());
+            } else {
+                ovecflip_solve_colors_odd = Some(vecn.clone());
+            }
+            ovecflip_solve_colors_even.is_some() || ovecflip_solve_colors_odd.is_some()
         },
     );
-    let vecn_solve_colors = vecvecn_solve_colors.first().expect("Could not establish correct colors");
+    assert!(ovecflip_solve_colors_even.is_some() && ovecflip_solve_colors_odd.is_some());
     println!("Same colors established");
     let mut ball_playback = ball.clone();
     let mut vecn_solution = Vec::new();
-    for n_flip in vecn_solve_colors.iter().cloned() {
+    for n_flip in ovecflip_solve_colors_even.unwrap().iter().cloned() {
         print!("{:>width$} : ", n_flip, width=2);
         ball_playback.flip(n_flip);
         vecn_solution.push(n_flip);
@@ -371,34 +358,13 @@ fn main() {
             }
         }
         if !ball_playback.is_solved() {
-            assert!(ball_playback.colors_correct());
-            let veci_wrong = ball_playback.wrong_indices().unwrap();
-            if veci_wrong.len() < 3 {
-                assert!(!veci_wrong.is_empty());
-                // we have to adjust parity
-                println!("Correcting parity...");
-                let mut vecn_parity = Vec::new();
-                ball_playback.find_solution(
-                    0,
-                    &mut HashMap::default(),
-                    &mut Vec::new(),
-                    &|ball| ball.colors_correct(),
-                    &mut |_ball, vecn| {
-                        if vecn.len()%2==1 {
-                            vecn_parity = vecn.clone();
-                            false
-                        } else {
-                            true
-                        }
-                    },
-                );
-                println!("Parity correction found");
-                for n_flip in vecn_parity.iter().cloned() {
-                    print!("{:>width$} : ", n_flip, width=2);
-                    ball_playback.flip(n_flip);
-                    vecn_solution.push(n_flip);
-                    print_ball(&ball_playback);
-                }
+            ball_playback = ball.clone();
+            vecn_solution.clear();
+            for n_flip in ovecflip_solve_colors_odd.clone().unwrap().iter().cloned() {
+                print!("{:>width$} : ", n_flip, width=2);
+                ball_playback.flip(n_flip);
+                vecn_solution.push(n_flip);
+                print_ball(&ball_playback);
             }
             assert!(ball_playback.colors_correct());
         }

@@ -337,8 +337,6 @@ fn main() {
             let mut n_actual_pos = (0..12)
                 .find(|&i_cell| extract_cell(ball_playback.n_cells, i_cell)>>1 == i)
                 .unwrap();
-            print!("{} is at {}, but should be at {}: ", i, n_actual_pos, i_desired_pos);
-            print_ball(&ball_playback);
             assert!(i_desired_pos <= n_actual_pos);
             while n_actual_pos!=i_desired_pos {
                 if n_actual_pos==1 {
@@ -346,8 +344,6 @@ fn main() {
                         for n_flip in aan_permutation[0].iter().rev() {
                             ball_playback.flip(*n_flip);
                             vecn_solution.push(*n_flip);
-                            print!("After {}: ", n_flip);
-                            print_ball(&ball_playback);
                         }
                         n_actual_pos = (0..12)
                             .find(|&i_cell| extract_cell(ball_playback.n_cells, i_cell)>>1 == i)
@@ -357,31 +353,23 @@ fn main() {
                     for n_flip in aan_permutation[std::cmp::max(i_desired_pos, n_actual_pos-2)].iter().rev() {
                         ball_playback.flip(*n_flip);
                         vecn_solution.push(*n_flip);
-                        print!("After {}: ", n_flip);
-                        print_ball(&ball_playback);
                     }
                     n_actual_pos = (0..12)
                         .find(|&i_cell| extract_cell(ball_playback.n_cells, i_cell)>>1 == i)
                         .unwrap();
                 }
-                print!("{} is at {}, but should be at {}: ", i, n_actual_pos, i_desired_pos);
-                print_ball(&ball_playback);
             }
         }
         if !ball_playback.is_solved() {
             ball_playback = ball.clone();
             vecn_solution.clear();
-            println!("Using odd");
             for n_flip in ovecflip_solve_colors_odd.clone().unwrap().iter().cloned() {
-                print!("{:>width$} : ", n_flip, width=2);
                 ball_playback.flip(n_flip);
                 vecn_solution.push(n_flip);
-                print_ball(&ball_playback);
             }
             assert!(ball_playback.colors_correct());
         }
     }
-    print_ball(&ball_playback);
     let mut ball_test = ball.clone();
     for n_flip in vecn_solution.iter() {
         ball_test.flip(*n_flip);
@@ -395,9 +383,7 @@ fn main() {
         vecflip_solution_compressed = compress_solution(&vecflip_solution_compressed);
     }
 
-    println!("Solution:   {} moves", vecn_solution.len());
-    println!("Comperssed: {} moves", vecflip_solution_compressed.len());
-
+    println!("Solved in {} ({}) moves", vecflip_solution_compressed.len(), vecn_solution.len());
     let mut ball_test = ball.clone();
     for flip in vecflip_solution_compressed {
         print_ball(&ball_test);

@@ -186,7 +186,7 @@ impl SBall {
             FnPred: Fn(&SBall) -> bool,
             FnSuccess: FnMut(&SBall, &Vec<usize>) -> bool, // result indicates whether we want to continue
     {
-        if 7<n_depth {
+        if 6<n_depth {
             return;
             //return None;
         }
@@ -200,25 +200,6 @@ impl SBall {
                 return /*None*/;
             }
         }
-        //if self.count_different_cells(&SBall::new())==3 {
-        //    if self.n_cells & 0b00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001 == 0 {
-        //        fn_success(vecn);
-        //        //return Some(vecn.clone());
-        //    }
-        //    //return Some(vecn.clone());
-        //}
-        //if self.n_cells & 0b11110_11110_11110_11110_11110_11110_11110_11110_11110_11110_11110_11110 == 0b11000_10110_10100_10010_10000_01110_01100_01010_01000_00110_00100_00010 {
-        //    return Some(vecn.clone());
-        //}
-        //if self.n_cells & 0b00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001 == 0 {
-        //    return Some(vecn.clone());
-        //}
-        //if self.n_cells == 0b11000_10110_10100_10010_10000_01110_01100_01010_01000_00010_00100_00110 {
-        //    return Some(vecn.clone());
-        //}
-        //if self.n_cells == 0b11000_10110_10100_10010_10000_01110_01100_01010_01000_00110 _00100_00010 {
-        //    return Some(vecn.clone());
-        //}
         for i in 0..7 {
             let mut ball_next = self.clone();
             ball_next.secondary_flip(i);

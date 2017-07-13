@@ -3,7 +3,7 @@ extern crate rand;
 
 use fnv::FnvHashMap as HashMap;
 use fnv::FnvHashSet as HashSet;
-use rand::Rng;
+//use rand::Rng;
 
 static N_BITS_PER_CELL : usize = 5;
 static N_CELL_MASK : u64 = 0b11111u64;
@@ -272,11 +272,14 @@ fn main() {
 
     let ball = { // "input" ball - immutable so that we can always look back what it initially was
         let mut ball = SBall::new();
-        // generate random configuration
-        let mut rng = rand::thread_rng();
-        for _i in 0..rng.gen_range(1, 100000) {
-            ball.flip(rng.gen_range(0, 13));
+        for n in 0..10000 {
+            ball.flip((2*n+6)%13);
         }
+        // generate random configuration
+        //let mut rng = rand::thread_rng();
+        //for _i in 0..rng.gen_range(1, 100000) {
+        //    ball.flip(rng.gen_range(0, 13));
+        //}
         ball
     };
     print_ball(&ball);
@@ -360,6 +363,7 @@ fn main() {
         if !ball_playback.is_solved() {
             ball_playback = ball.clone();
             vecn_solution.clear();
+            println!("Using odd");
             for n_flip in ovecflip_solve_colors_odd.clone().unwrap().iter().cloned() {
                 print!("{:>width$} : ", n_flip, width=2);
                 ball_playback.flip(n_flip);

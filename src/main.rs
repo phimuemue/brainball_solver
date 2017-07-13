@@ -2,6 +2,7 @@ extern crate fnv;
 extern crate rand;
 
 use fnv::FnvHashMap as HashMap;
+use fnv::FnvHashSet as HashSet;
 use rand::Rng;
 
 static N_BITS_PER_CELL : usize = 5;
@@ -447,6 +448,15 @@ fn main() {
 }
 
 fn compress_solution(vecn_solution: &Vec<usize>) -> Vec<usize> {
+    let mut setball = HashSet::default();
+    setball.insert(SBall::new());
+    for i_lo in 0..vecn_solution.len() {
+        let mut ball = SBall::new();
+        for i_hi in i_lo..vecn_solution.len() {
+            ball.flip(vecn_solution[i_hi]);
+            setball.insert(ball.clone());
+        }
+    }
     let mut mapballvecflip : HashMap<_, Vec<_>> = HashMap::default();
     SBall::new().find_solution(
         0,
@@ -454,7 +464,7 @@ fn compress_solution(vecn_solution: &Vec<usize>) -> Vec<usize> {
         &mut Vec::new(),
         &|_ball| true, // consider all moves
         &mut |ball, vecflip| {
-            if vecflip.len()<=6 {
+            if setball.contains(&ball) {
                 mapballvecflip.insert(ball.clone(), vecflip.clone());
             }
             true // always continue

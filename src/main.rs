@@ -304,7 +304,7 @@ fn main() {
             } else {
                 ovecflip_solve_colors_odd = Some(vecn.clone());
             }
-            ovecflip_solve_colors_even.is_some() || ovecflip_solve_colors_odd.is_some()
+            ovecflip_solve_colors_even.is_none() || ovecflip_solve_colors_odd.is_none()
         },
         9999,
         9999,

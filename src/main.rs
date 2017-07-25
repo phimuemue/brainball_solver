@@ -169,7 +169,7 @@ impl SBall {
             FnPred: Fn(&SBall) -> bool,
             FnSuccess: FnMut(&SBall, &Vec<usize>) -> bool, // result indicates whether we want to continue
     {
-        if 6<n_depth {
+        if 0==n_depth {
             return;
             //return None;
         }
@@ -179,7 +179,7 @@ impl SBall {
             }
         }
         //if let Some(n_depth_ball_already_searched) = mapballn_depth.get(&self) {
-        //    if n_depth_ball_already_searched <= &n_depth {
+        //    if n_depth_ball_already_searched >= &n_depth {
         //        return /*None*/;
         //    }
         //}
@@ -188,8 +188,8 @@ impl SBall {
                 let mut ball_next = self.clone();
                 ball_next.secondary_flip(i);
                 vecn.push(6+i);
-                ball_next.find_solution(n_depth+1, mapballn_depth, vecn, fn_pred, fn_success, 9999, i);
-                //if let Some(vecnSolution) = self.find_solution(n_depth+1, mapballn_depth, vecn) {
+                ball_next.find_solution(n_depth-1, mapballn_depth, vecn, fn_pred, fn_success, 9999, i);
+                //if let Some(vecnSolution) = self.find_solution(n_depth-1, mapballn_depth, vecn) {
                 //    return Some(vecnSolution);
                 //}
                 vecn.pop().unwrap();
@@ -200,8 +200,8 @@ impl SBall {
                 let mut ball_next = self.clone();
                 ball_next.primary_flip(i);
                 vecn.push(i);
-                ball_next.find_solution(n_depth+1, mapballn_depth, vecn, fn_pred, fn_success, i, 9999);
-                //if let Some(vecnSolution) = self.find_solution(n_depth+1, mapballn_depth, vecn) {
+                ball_next.find_solution(n_depth-1, mapballn_depth, vecn, fn_pred, fn_success, i, 9999);
+                //if let Some(vecnSolution) = self.find_solution(n_depth-1, mapballn_depth, vecn) {
                 //    return Some(vecnSolution);
                 //}
                 vecn.pop().unwrap();
@@ -293,7 +293,7 @@ fn main() {
     let mut ovecflip_solve_colors_even = None;
     let mut ovecflip_solve_colors_odd = None;
     ball.find_solution(
-        0,
+        8,
         &mut HashMap::default(),
         &mut Vec::new(),
         &|ball| ball.colors_correct(),
@@ -404,7 +404,7 @@ fn compress_solution(vecn_solution: &Vec<usize>) -> Vec<usize> {
     }
     let mut mapballvecflip : HashMap<_, Vec<_>> = HashMap::default();
     SBall::new().find_solution(
-        0,
+        8,
         &mut HashMap::default(),
         &mut Vec::new(),
         &|_ball| true, // consider all moves

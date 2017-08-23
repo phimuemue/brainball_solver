@@ -198,24 +198,38 @@ impl SBall {
                 return;
             }
         }
-        for i in 0..7 {
-            if n_last_sec_flip!=i {
+        macro_rules! impl_sec_flip{($i: expr) => {
+            if n_last_sec_flip!=$i {
                 let mut ball_next = self.clone();
-                ball_next.secondary_flip(i);
-                vecn.push(6+i);
-                ball_next.find_solution::<NumDepth::Prev,_,_>(vecn, fn_pred, fn_success, 9999, i);
+                ball_next.secondary_flip($i);
+                vecn.push(6+$i);
+                ball_next.find_solution::<NumDepth::Prev,_,_>(vecn, fn_pred, fn_success, 9999, $i);
                 vecn.pop().unwrap();
             }
-        }
-        for i in 0..6 {
-            if n_last_pri_flip!=i {
+        }}
+        impl_sec_flip!(0);
+        impl_sec_flip!(1);
+        impl_sec_flip!(2);
+        impl_sec_flip!(3);
+        impl_sec_flip!(4);
+        impl_sec_flip!(5);
+        impl_sec_flip!(6);
+
+        macro_rules! impl_pri_flip{($i: expr) => {
+            if n_last_pri_flip!=$i {
                 let mut ball_next = self.clone();
-                ball_next.primary_flip(i);
-                vecn.push(i);
-                ball_next.find_solution::<NumDepth::Prev,_,_>(vecn, fn_pred, fn_success, i, 9999);
+                ball_next.primary_flip($i);
+                vecn.push($i);
+                ball_next.find_solution::<NumDepth::Prev,_,_>(vecn, fn_pred, fn_success, $i, 9999);
                 vecn.pop().unwrap();
             }
-        }
+        }}
+        impl_pri_flip!(0);
+        impl_pri_flip!(1);
+        impl_pri_flip!(2);
+        impl_pri_flip!(3);
+        impl_pri_flip!(4);
+        impl_pri_flip!(5);
     }
 }
 

@@ -61,6 +61,7 @@ static AN_INVERTED_FLIP_MASK_SEC : [u64; 7] = [ // == (N_MASK_3 << AI_SHIFT_INDE
 
 trait TNum {
     type Prev: TNum;
+    #[inline(always)]
     fn value() -> usize;
 }
 
@@ -81,6 +82,7 @@ impl_num!(SNum5, 5, SNum4);
 impl_num!(SNum6, 6, SNum5);
 impl_num!(SNum7, 7, SNum6);
 impl_num!(SNum8, 8, SNum7);
+impl_num!(SNumUNDEFINED, 9999, SNumUNDEFINED); // another hack
 
 impl SBall {
     fn new() -> SBall {
@@ -177,18 +179,24 @@ impl SBall {
     //    ((self.n_cells & (0b11111u64 << (i*5))) >> (i*5)) as usize
     //}
 
-    fn find_solution<NumDepth, FnPred, FnSuccess> (
+    fn find_solution<
+        NumDepth,
+        NumLastPriFlip,
+        NumLastSecFlip,
+        FnPred,
+        FnSuccess,
+    > (
         &self,
         vecn: &mut Vec<usize>,
         fn_pred: &FnPred,
         fn_success: &mut FnSuccess,
-        n_last_pri_flip: usize,
-        n_last_sec_flip: usize,
     )
         where
             FnPred: Fn(&SBall) -> bool,
             FnSuccess: FnMut(&SBall, &Vec<usize>) -> bool, // result indicates whether we want to continue
             NumDepth: TNum,
+            NumLastPriFlip: TNum,
+            NumLastSecFlip: TNum,
     {
         if 0==NumDepth::value() {
             return;
@@ -198,38 +206,38 @@ impl SBall {
                 return;
             }
         }
-        macro_rules! impl_sec_flip{($i: expr) => {
-            if n_last_sec_flip!=$i {
+        macro_rules! impl_sec_flip{($num: ident) => {
+            if NumLastSecFlip::value()!=$num::value() {
                 let mut ball_next = self.clone();
-                ball_next.secondary_flip($i);
-                vecn.push(6+$i);
-                ball_next.find_solution::<NumDepth::Prev,_,_>(vecn, fn_pred, fn_success, 9999, $i);
+                ball_next.secondary_flip($num::value());
+                vecn.push(6+$num::value());
+                ball_next.find_solution::<NumDepth::Prev,SNumUNDEFINED,$num,_,_>(vecn, fn_pred, fn_success);
                 vecn.pop().unwrap();
             }
         }}
-        impl_sec_flip!(0);
-        impl_sec_flip!(1);
-        impl_sec_flip!(2);
-        impl_sec_flip!(3);
-        impl_sec_flip!(4);
-        impl_sec_flip!(5);
-        impl_sec_flip!(6);
+        impl_sec_flip!(SNum0);
+        impl_sec_flip!(SNum1);
+        impl_sec_flip!(SNum2);
+        impl_sec_flip!(SNum3);
+        impl_sec_flip!(SNum4);
+        impl_sec_flip!(SNum5);
+        impl_sec_flip!(SNum6);
 
-        macro_rules! impl_pri_flip{($i: expr) => {
-            if n_last_pri_flip!=$i {
+        macro_rules! impl_pri_flip{($num: ident) => {
+            if NumLastPriFlip::value()!=$num::value() {
                 let mut ball_next = self.clone();
-                ball_next.primary_flip($i);
-                vecn.push($i);
-                ball_next.find_solution::<NumDepth::Prev,_,_>(vecn, fn_pred, fn_success, $i, 9999);
+                ball_next.primary_flip($num::value());
+                vecn.push($num::value());
+                ball_next.find_solution::<NumDepth::Prev,$num,SNumUNDEFINED,_,_>(vecn, fn_pred, fn_success);
                 vecn.pop().unwrap();
             }
         }}
-        impl_pri_flip!(0);
-        impl_pri_flip!(1);
-        impl_pri_flip!(2);
-        impl_pri_flip!(3);
-        impl_pri_flip!(4);
-        impl_pri_flip!(5);
+        impl_pri_flip!(SNum0);
+        impl_pri_flip!(SNum1);
+        impl_pri_flip!(SNum2);
+        impl_pri_flip!(SNum3);
+        impl_pri_flip!(SNum4);
+        impl_pri_flip!(SNum5);
     }
 }
 
@@ -256,7 +264,7 @@ fn main() {
         for _ in 0..4096 {
             vecovecn.push(None);
         }
-        ball.find_solution::<SNum8,_,_>(
+        ball.find_solution::<SNum8,SNumUNDEFINED,SNumUNDEFINED,_,_>(
             &mut Vec::new(),
             &|_ball| true,
             &mut |ball, vecn| {
@@ -272,8 +280,6 @@ fn main() {
                 }
                 true
             },
-            9999,
-            9999,
         );
         assert_eq!(vecovecn.iter().filter(|ovecn| ovecn.is_some()).count(), 4096);
         for ovecn in vecovecn.iter() {
@@ -352,7 +358,7 @@ fn main() {
     println!("Trying to establish same colors...");
     let mut ovecflip_solve_colors_even = None;
     let mut ovecflip_solve_colors_odd = None;
-    ball.find_solution::<SNum8,_,_>(
+    ball.find_solution::<SNum8,SNumUNDEFINED,SNumUNDEFINED,_,_>(
         &mut Vec::new(),
         &|ball| ball.colors_correct(),
         &mut |ball, vecn| {
@@ -364,8 +370,6 @@ fn main() {
             }
             ovecflip_solve_colors_even.is_none() || ovecflip_solve_colors_odd.is_none()
         },
-        9999,
-        9999,
     );
     assert!(ovecflip_solve_colors_even.is_some() && ovecflip_solve_colors_odd.is_some());
     println!("Same colors established");
@@ -461,7 +465,7 @@ fn compress_solution(vecn_solution: &Vec<usize>) -> Vec<usize> {
         }
     }
     let mut mapballvecflip : HashMap<_, Vec<_>> = HashMap::default();
-    SBall::new().find_solution::<SNum8,_,_>(
+    SBall::new().find_solution::<SNum8,SNumUNDEFINED,SNumUNDEFINED,_,_>(
         &mut Vec::new(),
         &|_ball| true, // consider all moves
         &mut |ball, vecflip| {
@@ -470,8 +474,6 @@ fn compress_solution(vecn_solution: &Vec<usize>) -> Vec<usize> {
             }
             true // always continue
         },
-        9999,
-        9999,
     );
     println!("Found {} entries", mapballvecflip.len());
     let mut veccompress = Vec::new();

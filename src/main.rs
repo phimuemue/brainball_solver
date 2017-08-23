@@ -181,6 +181,22 @@ impl SBall {
 
     fn find_solution<
         NumDepth,
+        FnSuccess,
+    > (
+        &self,
+        slcn: &mut [usize],
+        fn_success: &mut FnSuccess,
+    )
+        where
+            FnSuccess: FnMut(&SBall, &[usize]) -> bool, // result indicates whether we want to continue
+            NumDepth: TNum,
+    {
+        assert_eq!(NumDepth::value(), slcn.len());
+        self.internal_find_solution::<NumDepth, SNumUNDEFINED, SNumUNDEFINED, _>(slcn, fn_success)
+    }
+
+    fn internal_find_solution<
+        NumDepth,
         NumLastPriFlip,
         NumLastSecFlip,
         FnSuccess,
@@ -210,7 +226,7 @@ impl SBall {
                     let n_slcn_len = slcn.len();
                     slcn[n_slcn_len - NumDepth::value()] = 6 + $num::value();
                 }
-                ball_next.find_solution::<NumDepth::Prev,SNumUNDEFINED,$num,_>(slcn, fn_success);
+                ball_next.internal_find_solution::<NumDepth::Prev,SNumUNDEFINED,$num,_>(slcn, fn_success);
             }
         }}
         impl_sec_flip!(SNum0);
@@ -230,7 +246,7 @@ impl SBall {
                     let n_slcn_len = slcn.len();
                     slcn[n_slcn_len - NumDepth::value()] = $num::value();
                 }
-                ball_next.find_solution::<NumDepth::Prev,$num,SNumUNDEFINED,_>(slcn, fn_success);
+                ball_next.internal_find_solution::<NumDepth::Prev,$num,SNumUNDEFINED,_>(slcn, fn_success);
             }
         }}
         impl_pri_flip!(SNum0);
@@ -267,7 +283,7 @@ fn main() {
         }
         let mut an = [ 9999, 9999, 9999, 9999, 9999, 9999, 9999, 9999, ];
         assert_eq!(an.len(), SNum8::value());
-        ball.find_solution::<SNum8,SNumUNDEFINED,SNumUNDEFINED,_>(
+        ball.find_solution::<SNum8,_>(
             &mut an,
             &mut |ball, slcn| {
                 //0 == self.n_cells & 0b00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001;
@@ -362,7 +378,7 @@ fn main() {
     let mut ovecflip_solve_colors_odd = None;
     let mut an = [ 9999, 9999, 9999, 9999, 9999, 9999, 9999, 9999, ];
     assert_eq!(SNum8::value(), an.len());
-    ball.find_solution::<SNum8,SNumUNDEFINED,SNumUNDEFINED,_>(
+    ball.find_solution::<SNum8,_>(
         &mut an,
         &mut |ball, slcn| {
             if ball.colors_correct() {
@@ -473,7 +489,7 @@ fn compress_solution(vecn_solution: &Vec<usize>) -> Vec<usize> {
     let mut mapballvecflip : HashMap<_, Vec<_>> = HashMap::default();
     let mut an = [ 9999, 9999, 9999, 9999, 9999, 9999, 9999, 9999, ];
     assert_eq!(SNum8::value(), an.len());
-    SBall::new().find_solution::<SNum8,SNumUNDEFINED,SNumUNDEFINED,_>(
+    SBall::new().find_solution::<SNum8,_>(
         &mut an,
         &mut |ball, vecflip| {
             if setball.contains(&ball) {

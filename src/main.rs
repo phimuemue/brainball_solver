@@ -59,6 +59,29 @@ static AN_INVERTED_FLIP_MASK_SEC : [u64; 7] = [ // == (N_MASK_3 << AI_SHIFT_INDE
     !((0b11111_11111_11111 << (5*9)) | (0b11111_11111_11111 << (5*3))),
 ];
 
+trait TNum {
+    type Prev: TNum;
+    fn value() -> usize;
+}
+
+macro_rules! impl_num {($name: ident, $val: expr, $prev: ident) => {
+    struct $name {}
+    impl TNum for $name {
+        type Prev = $prev;
+        fn value() -> usize { $val }
+    }
+}}
+
+impl_num!(SNum0, 0, SNum0); // hack: 0 is its own previous number
+impl_num!(SNum1, 1, SNum0);
+impl_num!(SNum2, 2, SNum1);
+impl_num!(SNum3, 3, SNum2);
+impl_num!(SNum4, 4, SNum3);
+impl_num!(SNum5, 5, SNum4);
+impl_num!(SNum6, 6, SNum5);
+impl_num!(SNum7, 7, SNum6);
+impl_num!(SNum8, 8, SNum7);
+
 impl SBall {
     fn new() -> SBall {
         SBall {
@@ -154,7 +177,7 @@ impl SBall {
     //    ((self.n_cells & (0b11111u64 << (i*5))) >> (i*5)) as usize
     //}
 
-    fn find_solution<FnPred, FnSuccess> (
+    fn find_solution<NumDepth, FnPred, FnSuccess> (
         &self,
         n_depth: usize,
         vecn: &mut Vec<usize>,
@@ -166,7 +189,9 @@ impl SBall {
         where
             FnPred: Fn(&SBall) -> bool,
             FnSuccess: FnMut(&SBall, &Vec<usize>) -> bool, // result indicates whether we want to continue
+            NumDepth: TNum,
     {
+        assert_eq!(NumDepth::value(), n_depth);
         if 0==n_depth {
             return;
         }
@@ -180,7 +205,7 @@ impl SBall {
                 let mut ball_next = self.clone();
                 ball_next.secondary_flip(i);
                 vecn.push(6+i);
-                ball_next.find_solution(n_depth-1, vecn, fn_pred, fn_success, 9999, i);
+                ball_next.find_solution::<NumDepth::Prev,_,_>(n_depth-1, vecn, fn_pred, fn_success, 9999, i);
                 vecn.pop().unwrap();
             }
         }
@@ -189,7 +214,7 @@ impl SBall {
                 let mut ball_next = self.clone();
                 ball_next.primary_flip(i);
                 vecn.push(i);
-                ball_next.find_solution(n_depth-1, vecn, fn_pred, fn_success, i, 9999);
+                ball_next.find_solution::<NumDepth::Prev,_,_>(n_depth-1, vecn, fn_pred, fn_success, i, 9999);
                 vecn.pop().unwrap();
             }
         }
@@ -219,7 +244,7 @@ fn main() {
         for _ in 0..4096 {
             vecovecn.push(None);
         }
-        ball.find_solution(
+        ball.find_solution::<SNum8,_,_>(
             8,
             &mut Vec::new(),
             &|_ball| true,
@@ -316,7 +341,7 @@ fn main() {
     println!("Trying to establish same colors...");
     let mut ovecflip_solve_colors_even = None;
     let mut ovecflip_solve_colors_odd = None;
-    ball.find_solution(
+    ball.find_solution::<SNum8,_,_>(
         8,
         &mut Vec::new(),
         &|ball| ball.colors_correct(),
@@ -426,7 +451,7 @@ fn compress_solution(vecn_solution: &Vec<usize>) -> Vec<usize> {
         }
     }
     let mut mapballvecflip : HashMap<_, Vec<_>> = HashMap::default();
-    SBall::new().find_solution(
+    SBall::new().find_solution::<SNum8,_,_>(
         8,
         &mut Vec::new(),
         &|_ball| true, // consider all moves

@@ -179,7 +179,6 @@ impl SBall {
 
     fn find_solution<NumDepth, FnPred, FnSuccess> (
         &self,
-        n_depth: usize,
         vecn: &mut Vec<usize>,
         fn_pred: &FnPred,
         fn_success: &mut FnSuccess,
@@ -191,8 +190,7 @@ impl SBall {
             FnSuccess: FnMut(&SBall, &Vec<usize>) -> bool, // result indicates whether we want to continue
             NumDepth: TNum,
     {
-        assert_eq!(NumDepth::value(), n_depth);
-        if 0==n_depth {
+        if 0==NumDepth::value() {
             return;
         }
         if fn_pred(self) {
@@ -205,7 +203,7 @@ impl SBall {
                 let mut ball_next = self.clone();
                 ball_next.secondary_flip(i);
                 vecn.push(6+i);
-                ball_next.find_solution::<NumDepth::Prev,_,_>(n_depth-1, vecn, fn_pred, fn_success, 9999, i);
+                ball_next.find_solution::<NumDepth::Prev,_,_>(vecn, fn_pred, fn_success, 9999, i);
                 vecn.pop().unwrap();
             }
         }
@@ -214,7 +212,7 @@ impl SBall {
                 let mut ball_next = self.clone();
                 ball_next.primary_flip(i);
                 vecn.push(i);
-                ball_next.find_solution::<NumDepth::Prev,_,_>(n_depth-1, vecn, fn_pred, fn_success, i, 9999);
+                ball_next.find_solution::<NumDepth::Prev,_,_>(vecn, fn_pred, fn_success, i, 9999);
                 vecn.pop().unwrap();
             }
         }
@@ -245,7 +243,6 @@ fn main() {
             vecovecn.push(None);
         }
         ball.find_solution::<SNum8,_,_>(
-            8,
             &mut Vec::new(),
             &|_ball| true,
             &mut |ball, vecn| {
@@ -342,7 +339,6 @@ fn main() {
     let mut ovecflip_solve_colors_even = None;
     let mut ovecflip_solve_colors_odd = None;
     ball.find_solution::<SNum8,_,_>(
-        8,
         &mut Vec::new(),
         &|ball| ball.colors_correct(),
         &mut |ball, vecn| {
@@ -452,7 +448,6 @@ fn compress_solution(vecn_solution: &Vec<usize>) -> Vec<usize> {
     }
     let mut mapballvecflip : HashMap<_, Vec<_>> = HashMap::default();
     SBall::new().find_solution::<SNum8,_,_>(
-        8,
         &mut Vec::new(),
         &|_ball| true, // consider all moves
         &mut |ball, vecflip| {

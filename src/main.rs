@@ -214,6 +214,45 @@ fn print_ball(ball: &SBall) {
 }
 
 fn main() {
+    if false {
+        let ball = SBall::new();
+        let mut vecovecn : Vec<Option<Vec<usize>>> = Vec::new();
+        for _ in 0..4096 {
+            vecovecn.push(None);
+        }
+        ball.find_solution(
+            8,
+            &mut Vec::new(),
+            &|_ball| true,
+            &mut |ball, vecn| {
+                //0 == self.n_cells & 0b00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001;
+                let mut n_color = 0;
+                for i in 0..12 {
+                    let n = if 0!=(ball.n_cells & (0b1 << (5 * i))) {1} else {0};
+                    n_color = (n_color<<1) | n;
+                }
+                assert!(n_color<4096);
+                if vecovecn[n_color].is_none() || vecovecn[n_color].as_ref().unwrap().len()>vecn.len() {
+                    vecovecn[n_color] = Some(vecn.clone());
+                }
+                true
+            },
+            9999,
+            9999,
+        );
+        assert_eq!(vecovecn.iter().filter(|ovecn| ovecn.is_some()).count(), 4096);
+        for ovecn in vecovecn.iter() {
+            print!("{:?}, //", ovecn.as_ref().unwrap());
+            {
+                let mut ball = SBall::new();
+                for flip in ovecn.as_ref().unwrap().iter() {
+                    ball.flip(*flip);
+                }
+                print_ball(&ball);
+            }
+        }
+        return;
+    }
     if false { // TODO clap
         // 4-number flips
         println!("static AN_FLIPPING_TABLE_4 : [u64; 0b11111_11111_11111_11111+1] = [");

@@ -3,7 +3,6 @@ extern crate rand;
 
 use fnv::FnvHashMap as HashMap;
 use fnv::FnvHashSet as HashSet;
-use rand::Rng;
 
 static N_BITS_PER_CELL : usize = 5;
 static N_CELL_MASK : u64 = 0b11111u64;
@@ -302,14 +301,15 @@ fn main() {
 
     let ball = { // "input" ball - immutable so that we can always look back what it initially was
         let mut ball = SBall::new();
-        //for n in 0..10000 {
-        //    ball.flip((4*n+7)%13);
-        //}
-        // generate random configuration
-        let mut rng = rand::thread_rng();
-        for _i in 0..rng.gen_range(1, 100000) {
-            ball.flip(rng.gen_range(0, 13));
+        for n in 0..10000 {
+            ball.flip((4*n+7)%13);
         }
+        // generate random configuration
+        //use rand::Rng;
+        //let mut rng = rand::thread_rng();
+        //for _i in 0..rng.gen_range(1, 100000) {
+        //    ball.flip(rng.gen_range(0, 13));
+        //}
         ball
     };
     print_ball(&ball);

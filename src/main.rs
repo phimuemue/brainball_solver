@@ -211,10 +211,10 @@ impl SBall {
             NumLastPriFlip: TNum,
             NumLastSecFlip: TNum,
     {
-        if 0==NumDepth::value() {
+        if !fn_success(self, &slcn[0..slcn.len()-NumDepth::value()]) {
             return;
         }
-        if !fn_success(self, &slcn[0..slcn.len()-NumDepth::value()]) {
+        if 0==NumDepth::value() {
             return;
         }
         macro_rules! impl_sec_flip{($num: ident) => {
@@ -376,9 +376,9 @@ fn main() {
         // try to find optimal solution by looking "from both sides"
         let mut setball_reachable_from_solved = HashSet::default(); //with_capacity_and_hasher(3_000_000, Default::default());
         setball_reachable_from_solved.insert(SBall::new());
-        let mut an = [ 9999, 9999, 9999, 9999, 9999, 9999, 9999, 9999 ];
-        assert_eq!(SNum8::value(), an.len());
-        SBall::new().find_solution::<SNum8, _>(
+        let mut an = [ 9999, 9999, 9999, 9999, 9999, 9999, 9999 ];
+        assert_eq!(SNum7::value(), an.len());
+        SBall::new().find_solution::<SNum7, _>(
             &mut an,
             &mut |ball, _| {
                 setball_reachable_from_solved.insert(ball.clone());
@@ -386,7 +386,7 @@ fn main() {
             }
         );
         let mut ovecflip = None;
-        ball.find_solution::<SNum8, _>(
+        ball.find_solution::<SNum7, _>(
             &mut an,
             &mut |ball, slcflip| {
                 if setball_reachable_from_solved.contains(&ball) {
@@ -403,7 +403,7 @@ fn main() {
                 ball_playback.flip(*flip);
             }
             let mut ovecflip_solve_playback = None;
-            SBall::new().find_solution::<SNum8, _>(
+            SBall::new().find_solution::<SNum7, _>(
                 &mut an,
                 &mut |ball, slcflip| {
                     if ball.n_cells==ball_playback.n_cells {

@@ -305,39 +305,45 @@ fn main() {
             ball.flip((4*n+7)%13);
         }
         // generate random configuration
-        //use rand::Rng;
-        //let mut rng = rand::thread_rng();
-        //for _i in 0..rng.gen_range(1, 100000) {
-        //    ball.flip(rng.gen_range(0, 13));
-        //}
+        use rand::Rng;
+        let mut rng = rand::thread_rng();
+        for _i in 0..rng.gen_range(1, 100000) {
+            ball.flip(rng.gen_range(0, 13));
+        }
         ball
     };
     {
         // try to find optimal solution by looking "from both sides"
-        let mut setball_reachable_from_solved = HashSet::default(); //with_capacity_and_hasher(3_000_000, Default::default());
-        setball_reachable_from_solved.insert(SBall::new());
+        let mut mapballn_flips = HashMap::default(); //with_capacity_and_hasher(3_000_000, Default::default());
+        mapballn_flips.insert(SBall::new(), 0);
         let mut an = [ 9999, 9999, 9999, 9999, 9999, 9999, 9999 ];
         assert_eq!(SNum7::value(), an.len());
         SBall::new().find_solution::<SNum7, _>(
             &mut an,
-            &mut |ball, _| {
-                setball_reachable_from_solved.insert(ball.clone());
+            &mut |ball, slcflip| {
+                let mut n_flips = mapballn_flips.entry(ball.clone()).or_insert(slcflip.len());
+                if slcflip.len() < *n_flips {
+                    *n_flips = slcflip.len();
+                }
                 true
             }
         );
-        let mut ovecflip = None;
+        let mut opairnvecflip = None;
         ball.find_solution::<SNum7, _>(
             &mut an,
             &mut |ball, slcflip| {
-                if setball_reachable_from_solved.contains(&ball) {
-                    ovecflip = Some(slcflip.to_vec());
-                    false
-                } else {
-                    true
+                if let Some(n_flips) = mapballn_flips.get(&ball) {
+                    if opairnvecflip.is_none() {
+                        opairnvecflip = Some((n_flips, slcflip.to_vec()));
+                    } else if n_flips + slcflip.len() < opairnvecflip.as_ref().unwrap().0 + opairnvecflip.as_ref().unwrap().1.len() {
+                        opairnvecflip = Some((n_flips, slcflip.to_vec()));
+                    }
+                    assert!(opairnvecflip.is_some());
                 }
+                true
             }
         );
-        if let Some(mut vecflip) = ovecflip {
+        if let Some((n_flips, mut vecflip)) = opairnvecflip {
             let mut ball_playback = ball.clone();
             for flip in vecflip.iter() {
                 ball_playback.flip(*flip);
@@ -346,7 +352,7 @@ fn main() {
             SBall::new().find_solution::<SNum7, _>(
                 &mut an,
                 &mut |ball, slcflip| {
-                    if ball.n_cells==ball_playback.n_cells {
+                    if *n_flips==slcflip.len() && ball.n_cells==ball_playback.n_cells {
                         ovecflip_solve_playback = Some(slcflip.iter().cloned().rev().collect::<Vec<_>>());
                         false
                     } else {

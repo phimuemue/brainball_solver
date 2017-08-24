@@ -372,6 +372,62 @@ fn main() {
         //}
         ball
     };
+    {
+        // try to find optimal solution by looking "from both sides"
+        let mut setball_reachable_from_solved = HashSet::default(); //with_capacity_and_hasher(3_000_000, Default::default());
+        setball_reachable_from_solved.insert(SBall::new());
+        let mut an = [ 9999, 9999, 9999, 9999, 9999, 9999, 9999, 9999 ];
+        assert_eq!(SNum8::value(), an.len());
+        SBall::new().find_solution::<SNum8, _>(
+            &mut an,
+            &mut |ball, _| {
+                setball_reachable_from_solved.insert(ball.clone());
+                true
+            }
+        );
+        let mut ovecflip = None;
+        ball.find_solution::<SNum8, _>(
+            &mut an,
+            &mut |ball, slcflip| {
+                if setball_reachable_from_solved.contains(&ball) {
+                    ovecflip = Some(slcflip.to_vec());
+                    false
+                } else {
+                    true
+                }
+            }
+        );
+        if let Some(mut vecflip) = ovecflip {
+            let mut ball_playback = ball.clone();
+            for flip in vecflip.iter() {
+                ball_playback.flip(*flip);
+            }
+            let mut ovecflip_solve_playback = None;
+            SBall::new().find_solution::<SNum8, _>(
+                &mut an,
+                &mut |ball, slcflip| {
+                    if ball.n_cells==ball_playback.n_cells {
+                        ovecflip_solve_playback = Some(slcflip.iter().cloned().rev().collect::<Vec<_>>());
+                        false
+                    } else {
+                        true
+                    }
+                }
+            );
+            assert!(ovecflip_solve_playback.is_some());
+            for flip in ovecflip_solve_playback.unwrap() {
+                vecflip.push(flip);
+            }
+            println!("Solved in {} moves", vecflip.len());
+            let mut ball_playback = ball.clone();
+            for flip in vecflip {
+                print_ball(&ball_playback);
+                ball_playback.flip(flip);
+            }
+            print_ball(&ball_playback);
+            return;
+        }
+    }
     print_ball(&ball);
     println!("Trying to establish same colors...");
     let mut ovecflip_solve_colors_even = None;

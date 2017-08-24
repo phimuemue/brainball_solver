@@ -2,6 +2,7 @@
 name = "brainball_solver"
 version = "0.1.0"
 authors = ["philipp <philipp>"]
+build = "build.rs"
 
 [dependencies]
 derive-new = "0"

@@ -92,7 +92,7 @@ impl SBall {
         //ball
     }
     
-    fn new_from_vec(slcn: &[isize]) -> (SBall, isize) {
+    fn new_from_vec(slcn: &[isize]) -> (SBall, isize, bool) {
         assert_eq!(13, slcn.len());
         let mut n_cells = 0u64;
         for (i, &n) in slcn.iter().skip_while(|n| n.abs()!=13)
@@ -115,6 +115,7 @@ impl SBall {
         (
             SBall { n_cells },
             (slcn.iter().position(|n| n.abs()==13).unwrap() as isize + 1),
+            slcn.iter().any(|n| -13==*n),
         )
     }
 
@@ -272,10 +273,10 @@ impl SBall {
     }
 }
 
-fn print_cell(n_cell: u64) {
+fn print_cell(n_cell: u64, b_flip_colors: bool) {
     let b_sign = 0b1==(n_cell & 0b1);
     let n_num = (n_cell & (0b1111 << 1)) >> 1;
-    if b_sign {
+    if b_sign!=b_flip_colors {
         print!("-");
     } else {
         print!(" ");
@@ -283,7 +284,7 @@ fn print_cell(n_cell: u64) {
     print!("{:02} ", n_num);
 }
 
-fn print_ball_human(ball: &SBall, n_offset: isize) {
+fn print_ball_human(ball: &SBall, n_offset: isize, b_flip_colors: bool) {
     let position_with_offset = |i| {
         (((i as isize) + n_offset + 26) % 13) as usize
     };
@@ -300,14 +301,14 @@ fn print_ball_human(ball: &SBall, n_offset: isize) {
     //    10 -09 -08
     print!(" ");
     for i in 0..4 {
-        print_cell(acell[i]);
+        print_cell(acell[i], b_flip_colors);
         print!(" ");
     }
     println!("");
     let print_middle_line = |i_left, i_right| {
-        print_cell(acell[i_left]);
+        print_cell(acell[i_left], b_flip_colors);
         print!("             ");
-        print_cell(acell[i_right]);
+        print_cell(acell[i_right], b_flip_colors);
         println!("");
     };
     print_middle_line(12, 4);
@@ -315,7 +316,7 @@ fn print_ball_human(ball: &SBall, n_offset: isize) {
     print_middle_line(10, 6);
     print!("    ");
     for i in (7..10).rev() {
-        print_cell(acell[i]);
+        print_cell(acell[i], b_flip_colors);
         print!(" ");
     }
     println!("");
@@ -326,7 +327,7 @@ enum VHumanStep {
     Rotate(isize),
 }
 
-fn print_solution_human(ball: &SBall, n_offset_initial: isize, slcflip: &[usize]) {
+fn print_solution_human(ball: &SBall, n_offset_initial: isize, slcflip: &[usize], b_flip_colors: bool) {
     //    ^^ ^^ ^^ ^^          ^^ ^^ ^^        0  => 0ccw, flip7, 0cw
     //       ^^ ^^ ^^ ^^          ^^ ^^ ^^     1  => 1ccw, flip7, 1cw
     //          ^^ ^^ ^^ ^^          ^^ ^^ ^^  2  => 2ccw, flip7, 2cw
@@ -401,7 +402,7 @@ fn print_solution_human(ball: &SBall, n_offset_initial: isize, slcflip: &[usize]
         let mut on_offset_initial = Some(n_offset_initial);
         let mut n_offset = 0;
         let mut ball_playback = ball.clone();
-        print_ball_human(&ball_playback, n_offset_initial);
+        print_ball_human(&ball_playback, n_offset_initial, b_flip_colors);
         for humanstep in vechumanstep {
             match humanstep {
                 VHumanStep::Rotate(n_rotation) => {
@@ -417,7 +418,7 @@ fn print_solution_human(ball: &SBall, n_offset_initial: isize, slcflip: &[usize]
                     ball_playback.flip(flip);
                 },
             };
-            print_ball_human(&ball_playback, n_offset);
+            print_ball_human(&ball_playback, n_offset, b_flip_colors);
         }
     }
     // let mut n_offset = n_offset_initial;
@@ -444,7 +445,7 @@ fn main() {
             .required(true)
         )
         .get_matches();
-    let (ball, n_offset_initial) = { // "input" ball - immutable so that we can always look back what it initially was
+    let (ball, n_offset_initial, b_flip_colors) = { // "input" ball - immutable so that we can always look back what it initially was
         let resvecnum : Result<Vec<_>,_> = clapmatches.value_of("INPUT").unwrap().split(" ")
             .map(|str_num| {
                 isize::from_str(str_num)
@@ -515,7 +516,7 @@ fn main() {
             for flip in ovecflip_solve_playback.unwrap() {
                 vecflip.push(flip);
             }
-            print_solution_human(&ball, n_offset_initial, &vecflip);
+            print_solution_human(&ball, n_offset_initial, &vecflip, b_flip_colors);
             return;
         }
     }
@@ -609,7 +610,7 @@ fn main() {
         vecflip_solution_compressed = compress_solution(&vecflip_solution_compressed);
     }
 
-    print_solution_human(&ball, n_offset_initial, &vecflip_solution_compressed);
+    print_solution_human(&ball, n_offset_initial, &vecflip_solution_compressed, b_flip_colors);
 }
 
 fn compress_solution(vecn_solution: &Vec<usize>) -> Vec<usize> {

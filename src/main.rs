@@ -300,6 +300,11 @@ fn print_ball_human(ball: &SBall, n_offset: isize) {
     println!("");
 }
 
+enum VHumanStep {
+    Flip(usize),
+    Rotate(isize),
+}
+
 fn print_solution_human(ball: &SBall, n_offset_initial: isize, slcflip: &[usize]) {
     //    ^^ ^^ ^^ ^^          ^^ ^^ ^^        0  => 0ccw, flip7, 0cw
     //       ^^ ^^ ^^ ^^          ^^ ^^ ^^     1  => 1ccw, flip7, 1cw
@@ -318,43 +323,85 @@ fn print_solution_human(ball: &SBall, n_offset_initial: isize, slcflip: &[usize]
     //       ^^ ^^ ^^          ^^ ^^ ^^        10 => 10ccw, flip6, 10cw
     //          ^^ ^^ ^^          ^^ ^^ ^^     11 => 11ccw, flip6, 11cw
     //             ^^ ^^ ^^          ^^ ^^ ^^  12 => 12ccw, flip6, 12cw
-    let mut n_offset = n_offset_initial;
-    let mut ball_playback = ball.clone();
+    let flipping_offset = |flip| -{ if flip<6 {
+        match flip {
+            0  => 0,
+            1  => 1,
+            2  => 2,
+            3  => 6,
+            4  => 7,
+            5  => 8,
+            _ => panic!("Unexpected"),
+        }
+    } else {
+        assert!(flip<13);
+        match flip-6 {
+            0 => 3,
+            1 => 4,
+            2 => 5,
+            3 => 9,
+            4 => 10,
+            5 => 11,
+            6 => 12,
+            _ => panic!("Unexpected"),
+        }
+    } };
+    let mut vechumanstep = Vec::new();
     for &flip in slcflip {
-        let n_flipping_offset = -{ if flip<6 {
-            match flip {
-                0  => 0,
-                1  => 1,
-                2  => 2,
-                3  => 6,
-                4  => 7,
-                5  => 8,
-                _ => panic!("Unexpected"),
-            }
-        } else {
-            assert!(flip<13);
-            match flip-6 {
-                0 => 3,
-                1 => 4,
-                2 => 5,
-                3 => 9,
-                4 => 10,
-                5 => 11,
-                6 => 12,
-                _ => panic!("Unexpected"),
-            }
-        } };
-        println!("Rotate {}", n_flipping_offset);
-        n_offset = n_offset + n_flipping_offset;
-        print_ball_human(&ball_playback, n_offset);
-        println!("Flip");
-        ball_playback.flip(flip);
-        print_ball_human(&ball_playback, n_offset);
-        println!("Rotate {}", -n_flipping_offset);
-        n_offset = n_offset - n_flipping_offset;
-        print_ball_human(&ball_playback, n_offset);
+        let n_flipping_offset = flipping_offset(flip);
+        match vechumanstep.last() {
+            None => {
+                vechumanstep.push(VHumanStep::Rotate(n_flipping_offset));
+            },
+            Some(&VHumanStep::Rotate(_n_prev_offset)) => {
+                if let VHumanStep::Rotate(n_prev_offset) = vechumanstep.pop().unwrap() {
+                    if 0!=n_prev_offset + n_flipping_offset {
+                        vechumanstep.push(VHumanStep::Rotate(n_prev_offset + n_flipping_offset));
+                    }
+                } else {
+                    panic!("Previous step assumed to be a rotation");
+                }
+            },
+            Some(&VHumanStep::Flip(_flip)) => {
+                vechumanstep.push(VHumanStep::Rotate(n_flipping_offset));
+            },
+        }
+        vechumanstep.push(VHumanStep::Flip(flip));
+        vechumanstep.push(VHumanStep::Rotate(-n_flipping_offset));
     }
-    print_ball_human(&ball_playback, n_offset);
+    {
+        let mut n_offset = n_offset_initial;
+        let mut ball_playback = ball.clone();
+        print_ball_human(&ball_playback, n_offset);
+        for humanstep in vechumanstep {
+            match humanstep {
+                VHumanStep::Rotate(n_rotation) => {
+                    println!("Rotate {}", n_rotation);
+                    n_offset = n_offset + n_rotation;
+                },
+                VHumanStep::Flip(flip) => {
+                    println!("Flip");
+                    ball_playback.flip(flip);
+                },
+            };
+            print_ball_human(&ball_playback, n_offset);
+        }
+    }
+    // let mut n_offset = n_offset_initial;
+    // let mut ball_playback = ball.clone();
+    // for &flip in slcflip {
+    //     let n_flipping_offset = flipping_offset(flip);
+    //     println!("Rotate {}", n_flipping_offset);
+    //     n_offset = n_offset + n_flipping_offset;
+    //     print_ball_human(&ball_playback, n_offset);
+    //     println!("Flip");
+    //     ball_playback.flip(flip);
+    //     print_ball_human(&ball_playback, n_offset);
+    //     println!("Rotate {}", -n_flipping_offset);
+    //     n_offset = n_offset - n_flipping_offset;
+    //     print_ball_human(&ball_playback, n_offset);
+    // }
+    // print_ball_human(&ball_playback, n_offset);
 }
 
 fn main() {

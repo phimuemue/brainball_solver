@@ -111,25 +111,25 @@ impl SBall {
     }
 
     //    ...................................
-    // 00 01 02 03 04 05 06 07 08 09 10 11 12
+    // 13 01 02 03 04 05 06 07 08 09 10 11 12
     // -1 00 01 02 03 04 05 06 07 08 09 10 11 (cell indices)
-    //    ^^ ^^ ^^ ^^          ^^ ^^ ^^        0
-    //       ^^ ^^ ^^ ^^          ^^ ^^ ^^     1
-    //          ^^ ^^ ^^ ^^          ^^ ^^ ^^  2
-    //    ^^ ^^ ^^          ^^ ^^ ^^ ^^        6
-    //       ^^ ^^ ^^          ^^ ^^ ^^ ^^     7
-    //          ^^ ^^ ^^          ^^ ^^ ^^ ^^	8
+    //    ^^ ^^ ^^ ^^          ^^ ^^ ^^        0  => 0ccw, flip7, 0cw
+    //       ^^ ^^ ^^ ^^          ^^ ^^ ^^     1  => 1ccw, flip7, 1cw
+    //          ^^ ^^ ^^ ^^          ^^ ^^ ^^  2  => 2ccw, flip7, 2cw
+    //    ^^ ^^ ^^          ^^ ^^ ^^ ^^        6  => 6ccw, flip7, 6cw
+    //       ^^ ^^ ^^          ^^ ^^ ^^ ^^     7  => 7ccw, flip7, 7cw
+    //          ^^ ^^ ^^          ^^ ^^ ^^ ^^  8  => 8ccw, flip7, 8cw
     // 
     //    ...................................
-    // 00 01 02 03 04 05 06 07 08 09 10 11 12
+    // 13 01 02 03 04 05 06 07 08 09 10 11 12
     // -1 00 01 02 03 04 05 06 07 08 09 10 11 (cell indices)
-    //    ^^ ^^ ^^             ^^ ^^ ^^        3
-    //       ^^ ^^ ^^             ^^ ^^ ^^     4
-    //          ^^ ^^ ^^             ^^ ^^ ^^  5
-    //    ^^ ^^ ^^          ^^ ^^ ^^           9
-    //       ^^ ^^ ^^          ^^ ^^ ^^        10
-    //          ^^ ^^ ^^          ^^ ^^ ^^     11
-    //             ^^ ^^ ^^          ^^ ^^ ^^  12
+    //    ^^ ^^ ^^             ^^ ^^ ^^        3  => 3ccw, flip6, 3cw
+    //       ^^ ^^ ^^             ^^ ^^ ^^     4  => 4ccw, flip6, 4cw
+    //          ^^ ^^ ^^             ^^ ^^ ^^  5  => 5ccw, flip6, 5cw
+    //    ^^ ^^ ^^          ^^ ^^ ^^           9  => 9ccw, flip6, 9cw
+    //       ^^ ^^ ^^          ^^ ^^ ^^        10 => 10ccw, flip6, 10cw
+    //          ^^ ^^ ^^          ^^ ^^ ^^     11 => 11ccw, flip6, 11cw
+    //             ^^ ^^ ^^          ^^ ^^ ^^  12 => 12ccw, flip6, 12cw
 
     #[inline(always)]
     fn primary_flip(&mut self, n_flip: usize) {
@@ -249,8 +249,10 @@ fn print_cell(n_cell: u64) {
     let n_num = (n_cell & (0b1111 << 1)) >> 1;
     if b_sign {
         print!("-");
+    } else {
+        print!(" ");
     }
-    print!("{},", n_num);
+    print!("{:02} ", n_num);
 }
 
 fn print_ball(ball: &SBall) {
@@ -258,6 +260,101 @@ fn print_ball(ball: &SBall) {
         print_cell(extract_cell(ball.n_cells, i));
     }
     println!("");
+}
+
+fn print_ball_human(ball: &SBall, n_offset: isize) {
+    let position_with_offset = |i| {
+        (((i as isize) + n_offset + 26) % 13) as usize
+    };
+    let mut acell = [0; 13];
+    for i in 0..12usize {
+        acell[position_with_offset(i)] = extract_cell(ball.n_cells, i);
+    }
+    acell[position_with_offset(12)] = 0b11010;
+    // Layout:
+    //  01  02  03  04
+    // 13            05
+    // 12            06
+    // 11            07
+    //    10 -09 -08
+    print!(" ");
+    for i in 0..4 {
+        print_cell(acell[i]);
+        print!(" ");
+    }
+    println!("");
+    let print_middle_line = |i_left, i_right| {
+        print_cell(acell[i_left]);
+        print!("             ");
+        print_cell(acell[i_right]);
+        println!("");
+    };
+    print_middle_line(12, 4);
+    print_middle_line(11, 5);
+    print_middle_line(10, 6);
+    print!("    ");
+    for i in (7..10).rev() {
+        print_cell(acell[i]);
+        print!(" ");
+    }
+    println!("");
+}
+
+fn print_solution_human(ball: &SBall, n_offset_initial: isize, slcflip: &[usize]) {
+    //    ^^ ^^ ^^ ^^          ^^ ^^ ^^        0  => 0ccw, flip7, 0cw
+    //       ^^ ^^ ^^ ^^          ^^ ^^ ^^     1  => 1ccw, flip7, 1cw
+    //          ^^ ^^ ^^ ^^          ^^ ^^ ^^  2  => 2ccw, flip7, 2cw
+    //    ^^ ^^ ^^          ^^ ^^ ^^ ^^        6  => 6ccw, flip7, 6cw
+    //       ^^ ^^ ^^          ^^ ^^ ^^ ^^     7  => 7ccw, flip7, 7cw
+    //          ^^ ^^ ^^          ^^ ^^ ^^ ^^  8  => 8ccw, flip7, 8cw
+    // 
+    //    ...................................
+    // 13 01 02 03 04 05 06 07 08 09 10 11 12
+    // -1 00 01 02 03 04 05 06 07 08 09 10 11 (cell indices)
+    //    ^^ ^^ ^^             ^^ ^^ ^^        3  => 3ccw, flip6, 3cw
+    //       ^^ ^^ ^^             ^^ ^^ ^^     4  => 4ccw, flip6, 4cw
+    //          ^^ ^^ ^^             ^^ ^^ ^^  5  => 5ccw, flip6, 5cw
+    //    ^^ ^^ ^^          ^^ ^^ ^^           9  => 9ccw, flip6, 9cw
+    //       ^^ ^^ ^^          ^^ ^^ ^^        10 => 10ccw, flip6, 10cw
+    //          ^^ ^^ ^^          ^^ ^^ ^^     11 => 11ccw, flip6, 11cw
+    //             ^^ ^^ ^^          ^^ ^^ ^^  12 => 12ccw, flip6, 12cw
+    let mut n_offset = n_offset_initial;
+    let mut ball_playback = ball.clone();
+    for &flip in slcflip {
+        let n_flipping_offset = -{ if flip<6 {
+            match flip {
+                0  => 0,
+                1  => 1,
+                2  => 2,
+                3  => 6,
+                4  => 7,
+                5  => 8,
+                _ => panic!("Unexpected"),
+            }
+        } else {
+            assert!(flip<13);
+            match flip-6 {
+                0 => 3,
+                1 => 4,
+                2 => 5,
+                3 => 9,
+                4 => 10,
+                5 => 11,
+                6 => 12,
+                _ => panic!("Unexpected"),
+            }
+        } };
+        println!("Rotate {}", n_flipping_offset);
+        n_offset = n_offset + n_flipping_offset;
+        print_ball_human(&ball_playback, n_offset);
+        println!("Flip");
+        ball_playback.flip(flip);
+        print_ball_human(&ball_playback, n_offset);
+        println!("Rotate {}", -n_flipping_offset);
+        n_offset = n_offset - n_flipping_offset;
+        print_ball_human(&ball_playback, n_offset);
+    }
+    print_ball_human(&ball_playback, n_offset);
 }
 
 fn main() {
@@ -366,11 +463,12 @@ fn main() {
             }
             println!("Solved in {} moves", vecflip.len());
             let mut ball_playback = ball.clone();
-            for flip in vecflip {
+            for flip in vecflip.iter().cloned() {
                 print_ball(&ball_playback);
                 ball_playback.flip(flip);
             }
             print_ball(&ball_playback);
+            print_solution_human(&ball, 0, &vecflip); // TODO offset
             return;
         }
     }

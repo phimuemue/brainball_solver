@@ -406,13 +406,13 @@ fn print_solution_human(ball: &SBall, n_offset_initial: isize, slcflip: &[usize]
 fn main() {
     let ball = { // "input" ball - immutable so that we can always look back what it initially was
         let mut ball = SBall::new();
-        for n in 0..10000 {
-            ball.flip((4*n+7)%13);
-        }
+        //for n in 0..10000 {
+        //    ball.flip((4*n+7)%13);
+        //}
         // generate random configuration
         use rand::Rng;
         let mut rng = rand::thread_rng();
-        for _i in 0..rng.gen_range(1, 100000) {
+        for _i in 0..rng.gen_range(1, 1000) {
             ball.flip(rng.gen_range(0, 13));
         }
         ball
@@ -425,8 +425,8 @@ fn main() {
         assert_eq!(SNum7::value(), an.len());
         SBall::new().find_solution::<SNum7, _>(
             &mut an,
-            &mut |ball, slcflip| {
-                let mut n_flips = mapballn_flips.entry(ball.clone()).or_insert(slcflip.len());
+            &mut |ball_bt, slcflip| {
+                let mut n_flips = mapballn_flips.entry(ball_bt.clone()).or_insert(slcflip.len());
                 if slcflip.len() < *n_flips {
                     *n_flips = slcflip.len();
                 }

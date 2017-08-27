@@ -255,13 +255,6 @@ fn print_cell(n_cell: u64) {
     print!("{:02} ", n_num);
 }
 
-fn print_ball(ball: &SBall) {
-    for i in 0..12 {
-        print_cell(extract_cell(ball.n_cells, i));
-    }
-    println!("");
-}
-
 fn print_ball_human(ball: &SBall, n_offset: isize) {
     let position_with_offset = |i| {
         (((i as isize) + n_offset + 26) % 13) as usize
@@ -351,7 +344,9 @@ fn print_solution_human(ball: &SBall, n_offset_initial: isize, slcflip: &[usize]
         let n_flipping_offset = flipping_offset(flip);
         match vechumanstep.last() {
             None => {
-                vechumanstep.push(VHumanStep::Rotate(n_flipping_offset));
+                if 0!=n_flipping_offset {
+                    vechumanstep.push(VHumanStep::Rotate(n_flipping_offset));
+                }
             },
             Some(&VHumanStep::Rotate(_n_prev_offset)) => {
                 if let VHumanStep::Rotate(n_prev_offset) = vechumanstep.pop().unwrap() {
@@ -363,11 +358,15 @@ fn print_solution_human(ball: &SBall, n_offset_initial: isize, slcflip: &[usize]
                 }
             },
             Some(&VHumanStep::Flip(_flip)) => {
-                vechumanstep.push(VHumanStep::Rotate(n_flipping_offset));
+                if 0!=n_flipping_offset {
+                    vechumanstep.push(VHumanStep::Rotate(n_flipping_offset));
+                }
             },
         }
         vechumanstep.push(VHumanStep::Flip(flip));
-        vechumanstep.push(VHumanStep::Rotate(-n_flipping_offset));
+        if 0!=n_flipping_offset {
+            vechumanstep.push(VHumanStep::Rotate(-n_flipping_offset));
+        }
     }
     {
         let mut n_offset = n_offset_initial;
@@ -405,44 +404,6 @@ fn print_solution_human(ball: &SBall, n_offset_initial: isize, slcflip: &[usize]
 }
 
 fn main() {
-    if false {
-        let ball = SBall::new();
-        let mut vecovecn : Vec<Option<Vec<usize>>> = Vec::new();
-        for _ in 0..4096 {
-            vecovecn.push(None);
-        }
-        let mut an = [ 9999, 9999, 9999, 9999, 9999, 9999, 9999, 9999, ];
-        assert_eq!(an.len(), SNum8::value());
-        ball.find_solution::<SNum8,_>(
-            &mut an,
-            &mut |ball, slcn| {
-                //0 == self.n_cells & 0b00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001_00001;
-                let mut n_color = 0;
-                for i in 0..12 {
-                    let n = if 0!=(ball.n_cells & (0b1 << (5 * i))) {1} else {0};
-                    n_color = (n_color<<1) | n;
-                }
-                assert!(n_color<4096);
-                if vecovecn[n_color].is_none() || vecovecn[n_color].as_ref().unwrap().len()>slcn.len() {
-                    vecovecn[n_color] = Some(slcn.to_vec());
-                }
-                true
-            },
-        );
-        assert_eq!(vecovecn.iter().filter(|ovecn| ovecn.is_some()).count(), 4096);
-        for ovecn in vecovecn.iter() {
-            print!("{:?}, //", ovecn.as_ref().unwrap());
-            {
-                let mut ball = SBall::new();
-                for flip in ovecn.as_ref().unwrap().iter() {
-                    ball.flip(*flip);
-                }
-                print_ball(&ball);
-            }
-        }
-        return;
-    }
-
     let ball = { // "input" ball - immutable so that we can always look back what it initially was
         let mut ball = SBall::new();
         for n in 0..10000 {
@@ -509,18 +470,10 @@ fn main() {
                 vecflip.push(flip);
             }
             println!("Solved in {} moves", vecflip.len());
-            let mut ball_playback = ball.clone();
-            for flip in vecflip.iter().cloned() {
-                print_ball(&ball_playback);
-                ball_playback.flip(flip);
-            }
-            print_ball(&ball_playback);
             print_solution_human(&ball, 0, &vecflip); // TODO offset
             return;
         }
     }
-    print_ball(&ball);
-    println!("Trying to establish same colors...");
     let mut ovecflip_solve_colors_even = None;
     let mut ovecflip_solve_colors_odd = None;
     let mut an = [ 9999, 9999, 9999, 9999, 9999, 9999, 9999, 9999, ];
@@ -541,14 +494,11 @@ fn main() {
         },
     );
     assert!(ovecflip_solve_colors_even.is_some() && ovecflip_solve_colors_odd.is_some());
-    println!("Same colors established");
     let mut ball_playback = ball.clone();
     let mut vecn_solution = Vec::new();
     for n_flip in ovecflip_solve_colors_even.unwrap().iter().cloned() {
-        print!("{:>width$} : ", n_flip, width=2);
         ball_playback.flip(n_flip);
         vecn_solution.push(n_flip);
-        print_ball(&ball_playback);
     }
     let aan_permutation = [
         [5, 1, 4, 0, 4, 5], // [1, 2, 0]
@@ -614,13 +564,8 @@ fn main() {
         vecflip_solution_compressed = compress_solution(&vecflip_solution_compressed);
     }
 
-    println!("Solved in {} ({}) moves", vecflip_solution_compressed.len(), vecn_solution.len());
-    let mut ball_test = ball.clone();
-    for flip in vecflip_solution_compressed {
-        print_ball(&ball_test);
-        ball_test.flip(flip);
-    }
-    print_ball(&ball_test);
+    println!("Solved in {} moves ({} before compression)", vecflip_solution_compressed.len(), vecn_solution.len());
+    print_solution_human(&ball, 0, &vecflip_solution_compressed); // TODO n_offset_initial
 }
 
 fn compress_solution(vecn_solution: &Vec<usize>) -> Vec<usize> {

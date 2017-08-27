@@ -1,8 +1,10 @@
 extern crate fnv;
 extern crate rand;
+extern crate clap;
 
 use fnv::FnvHashMap as HashMap;
 use fnv::FnvHashSet as HashSet;
+use std::str::FromStr;
 
 static N_BITS_PER_CELL : usize = 5;
 static N_CELL_MASK : u64 = 0b11111u64;
@@ -88,6 +90,32 @@ impl SBall {
         //};
         //println!("{:x}", ball.n_numbers);
         //ball
+    }
+    
+    fn new_from_vec(slcn: &[isize]) -> (SBall, isize) {
+        assert_eq!(13, slcn.len());
+        let mut n_cells = 0u64;
+        for (i, &n) in slcn.iter().skip_while(|n| n.abs()!=13)
+            .chain(
+                slcn.iter().take_while(|n| n.abs()!=13)
+            )
+            .filter(|&n| n.abs()!=13)
+            .enumerate()
+        {
+            assert!(n < 13);
+            assert!(-13 < n);
+            assert!(0 != n);
+            assert!(i < 13);
+            let u = (n.abs() as u64) << 1;
+            n_cells |= u << (i*5);
+            if n<0 {
+                n_cells |= 1 << (i*5);
+            }
+        }
+        (
+            SBall { n_cells },
+            (slcn.iter().position(|n| n.abs()==13).unwrap() as isize + 1),
+        )
     }
 
     //fn count_different_cells(&self, ball: &SBall) -> usize {
@@ -370,13 +398,18 @@ fn print_solution_human(ball: &SBall, n_offset_initial: isize, slcflip: &[usize]
     }
     {
         println!("Solvable in {} steps:", vechumanstep.len());
-        let mut n_offset = n_offset_initial;
+        let mut on_offset_initial = Some(n_offset_initial);
+        let mut n_offset = 0;
         let mut ball_playback = ball.clone();
-        print_ball_human(&ball_playback, n_offset);
+        print_ball_human(&ball_playback, n_offset_initial);
         for humanstep in vechumanstep {
             match humanstep {
                 VHumanStep::Rotate(n_rotation) => {
-                    println!("Rotate {}", n_rotation);
+                    if let Some(n_offset_initial) = on_offset_initial.take() {
+                        println!("Rotate {}", (n_rotation - n_offset_initial));
+                    } else {
+                        println!("Rotate {}", n_rotation);
+                    }
                     n_offset = n_offset + n_rotation;
                 },
                 VHumanStep::Flip(flip) => {
@@ -405,18 +438,30 @@ fn print_solution_human(ball: &SBall, n_offset_initial: isize, slcflip: &[usize]
 }
 
 fn main() {
-    let ball = { // "input" ball - immutable so that we can always look back what it initially was
-        let mut ball = SBall::new();
+    let clapmatches = clap::App::new("brainball_solver")
+        .arg(clap::Arg::with_name("INPUT")
+            .help("Initial brainball position. Use positive numbers to designate one color, negative numbers to designate the other. Example: 1 2 -3 4 5 -6 -7 -8 9 10 -11 -12 13")
+            .required(true)
+        )
+        .get_matches();
+    let (ball, n_offset_initial) = { // "input" ball - immutable so that we can always look back what it initially was
+        let resvecnum : Result<Vec<_>,_> = clapmatches.value_of("INPUT").unwrap().split(" ")
+            .map(|str_num| {
+                isize::from_str(str_num)
+            })
+            .collect();
+        SBall::new_from_vec(&resvecnum.unwrap())
+        //let mut ball = SBall::new();
         //for n in 0..10000 {
         //    ball.flip((4*n+7)%13);
         //}
         // generate random configuration
-        use rand::Rng;
-        let mut rng = rand::thread_rng();
-        for _i in 0..rng.gen_range(1, 1000) {
-            ball.flip(rng.gen_range(0, 13));
-        }
-        ball
+        //use rand::Rng;
+        //let mut rng = rand::thread_rng();
+        //for _i in 0..rng.gen_range(1, 1000) {
+        //    ball.flip(rng.gen_range(0, 13));
+        //}
+        //(ball, 0)
     };
     {
         // try to find optimal solution by looking "from both sides"
@@ -470,7 +515,7 @@ fn main() {
             for flip in ovecflip_solve_playback.unwrap() {
                 vecflip.push(flip);
             }
-            print_solution_human(&ball, 0, &vecflip); // TODO offset
+            print_solution_human(&ball, n_offset_initial, &vecflip);
             return;
         }
     }
@@ -564,7 +609,7 @@ fn main() {
         vecflip_solution_compressed = compress_solution(&vecflip_solution_compressed);
     }
 
-    print_solution_human(&ball, 0, &vecflip_solution_compressed); // TODO n_offset_initial
+    print_solution_human(&ball, n_offset_initial, &vecflip_solution_compressed);
 }
 
 fn compress_solution(vecn_solution: &Vec<usize>) -> Vec<usize> {

@@ -369,6 +369,7 @@ fn print_solution_human(ball: &SBall, n_offset_initial: isize, slcflip: &[usize]
         }
     }
     {
+        println!("Solvable in {} steps:", vechumanstep.len());
         let mut n_offset = n_offset_initial;
         let mut ball_playback = ball.clone();
         print_ball_human(&ball_playback, n_offset);
@@ -469,7 +470,6 @@ fn main() {
             for flip in ovecflip_solve_playback.unwrap() {
                 vecflip.push(flip);
             }
-            println!("Solved in {} moves", vecflip.len());
             print_solution_human(&ball, 0, &vecflip); // TODO offset
             return;
         }
@@ -564,7 +564,6 @@ fn main() {
         vecflip_solution_compressed = compress_solution(&vecflip_solution_compressed);
     }
 
-    println!("Solved in {} moves ({} before compression)", vecflip_solution_compressed.len(), vecn_solution.len());
     print_solution_human(&ball, 0, &vecflip_solution_compressed); // TODO n_offset_initial
 }
 
